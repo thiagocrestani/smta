@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+ <PreferenceCategory
+   android:summary="INS"
+   android:title="INS configuração" >
+   <ListPreference
+     android:entries="@array/rate"
+     android:entryValues="@array/rateValues"
+     android:key="rate"
+     android:defaultValue="0"
+     android:summary="Escolha a frequência dos sensores pretendida."
+     android:title="Frequência" />
+    <ListPreference
+     android:entries="@array/orientacao"
+     android:entryValues="@array/orientacaoValues"
+     android:key="orientacao"
+     android:defaultValue="rotvet"
+     android:summary="Escolha a forma (sensores) de orientação pretendida."
+     android:title="Orientação" />
+    <CheckBoxPreference
+        android:key="efectuaCalibracao"
+        android:defaultValue="false"
+        android:summary="Activa ou desactiva a calibracao do acelerometro."
+     android:title="Calibração do acelerometro." />
+    <EditTextPreference
+     android:key="thresholdArranque"
+     android:defaultValue="0.4"
+     android:summary="Threshold para acelerometro (arranque)"
+     android:title="Threshold" />
+    <CheckBoxPreference
+        android:key="controlaParagem"
+        android:defaultValue="false"
+        android:summary="Activa ou desactiva o controlo de desacelaração."
+     android:title="Controlo de desacelaração." />
+  	 <EditTextPreference
+     android:key="controlaParagemContador"
+     android:defaultValue="3"
+     android:summary="Experimental: Controla o nº de registos a partir dos quais conta para desacelaração."
+     android:title="Threshold para Desacelaração" 
+     android:dependency="controlaParagem"/>
+
+ </PreferenceCategory>
+
+ <PreferenceCategory
+   android:summary="GPS"
+   android:title="GPS configuração" >
+  
+ </PreferenceCategory>
+ 
+</PreferenceScreen>

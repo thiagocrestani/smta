@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+        <color name="red">#FFFF0000</color>
+        <color name="green">#FF00FF00</color>
+        <color name="circulos_grandes">#60ff0000</color>
+        <color name="circulos_pequenos">#f00</color>
+        <color name="pitch_roll">#80ff0000</color>
+  		<color name="marcas">#f00</color>
+ 		<color name="text_color">#Aff0</color>
+ 		<color name="backgroundMapa">#30ffffff</color>
+        
+
+</resources>

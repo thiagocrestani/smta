@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sistema Móvel de Telemetria Automovel</string>
+    <string name="config">Configuração</string>
+    <string name="reset">Reset Vel.</string>
+    <string name="about">Acerca</string>
+    <string name="calibrar">Calibrar</string>
+    <string name="norte">N</string>
+  	<string name="este">E</string>
+  	<string name="sul">S</string>
+  	<string name="oeste">O</string>
+  	<string name="AccMag">accmag</string>
+  	<string name="RotationVector">rotvet</string>
+  	<string name="Fusao">fusao</string>
+  	
+    
+    
+</resources>

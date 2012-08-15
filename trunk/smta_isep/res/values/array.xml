@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <string-array name="rate">
+        
+        <item name="df">Delay Fastest</item>
+        <item name="dg">Delay Game</item>
+        <item name="dn">Delay Normal</item>
+        <item name="du">Delay UI</item>
+        
+    </string-array>
+    
+    <string-array name="rateValues">
+        <item name="df">0</item>
+        <item name="dg">1</item>
+        <item name="dn">3</item>
+        <item name="du">2</item>
+       
+    </string-array>
+    
+    <string-array name="orientacao">
+        <item name="am">Acc + Mag</item>
+        <item name="rv">Rotation Vector</item>
+        <item name="fu">Fusão Acc+Mag+Gyro</item>
+       
+        
+    </string-array>
+    
+    <string-array name="orientacaoValues">
+        <item name="am">accmag</item>
+        <item name="rv">rotvet</item>
+        <item name="fu">fusao</item>
+    </string-array>
+
+</resources>

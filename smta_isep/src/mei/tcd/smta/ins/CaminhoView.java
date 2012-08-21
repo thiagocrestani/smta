@@ -26,6 +26,7 @@ public class CaminhoView extends View {
 	private Paint textPaint;
 	private float[] posicao;
 	private int index = 0;
+	private int indexRestore =0;
 	Bitmap ponto;
 	//Bitmap seta;
 	float velocidade;
@@ -124,34 +125,35 @@ public class CaminhoView extends View {
 		int px = getMeasuredWidth() / 2;
 		int py = getMeasuredHeight() / 2;
 		index = 0;
+		indexRestore =0;
 		//translate positivox vai para a direita o canvas 
 		if(ultimoX+offset>px)
 		{
 			canvas.save();
 	    	canvas.translate((px-(ultimoX+offset)-40), 0);
 	    	restore = true;
-	    	//canvas.restore();
+	    	indexRestore ++;
 		}
 		if(ultimoX<-px+offset)
 		{
 			canvas.save();
 	    	canvas.translate(-ultimoX-px+offset+40, 0);
 	    	restore = true;
-	    	//canvas.restore();
+	    	indexRestore ++;
 		}
 		if(ultimoY+offset>py)
 		{
 			canvas.save();
 	    	canvas.translate(0, (py-(ultimoY+offset)-40));
 	    	restore = true;
-	    	//canvas.restore();
+	    	indexRestore ++;
 		}
 		if(ultimoY<-py+offset)
 		{
 			canvas.save();
 	    	canvas.translate(0, -ultimoY-py+offset+40);
 	    	restore = true;
-	    	//canvas.restore();
+	    	indexRestore ++;
 		}
 		
 		while(index<xArray.size()){
@@ -167,11 +169,14 @@ public class CaminhoView extends View {
 		}
 		if(restore)
 		{
-		canvas.restore();
-		restore=false;
+			for(int i=0;i<indexRestore;i++)
+				canvas.restore();
+			restore=false;
 		}
+		
 		if(index>0)
 		{
+			//canvas.restore();
 			canvas.drawText("Posicao X:" + xArray.get(index-1), 1, 10, textPaint);
 			canvas.drawText("Posicao Y:" + yArray.get(index-1), 1, 22, textPaint);
 			ultimoX = xArray.get(index-1);

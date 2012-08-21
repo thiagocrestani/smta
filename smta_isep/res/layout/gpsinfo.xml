@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ViewSwitcher xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/viewSwitcher1"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:inAnimation="@android:anim/slide_in_left"
+    android:outAnimation="@android:anim/slide_out_right" >
+
+    <RelativeLayout
+        android:id="@+id/layoutMapa"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical" >
+
+        <LinearLayout
+            android:id="@+id/buttonsView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="5dip" >
+
+            <Button
+                android:id="@+id/start"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_marginRight="5dip"
+                android:layout_weight="1"
+                android:enabled="true"
+                android:onClick="onStartClick"
+                android:text="Começar"
+                android:weightSum="1" />
+
+            <Button
+                android:id="@+id/stop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_marginLeft="5dip"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:onClick="onStopClick"
+                android:text="Finalizar"
+                android:weightSum="1" />
+
+            <Button
+                android:id="@+id/maisinfo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_marginLeft="5dip"
+                android:layout_weight="1"
+                android:enabled="true"
+                android:onClick="onNextClick"
+                android:text="+Info"
+                android:weightSum="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/mapaView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/buttonsView"
+            android:weightSum="2" >
+
+            <com.google.android.maps.MapView
+                android:id="@+id/mapview1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:apiKey="0CdgP_5eXIzO_L4g3yH0tsIu5RxccMpc5DwVfbg"
+                android:clickable="true" />
+            <!-- 0CdgP_5eXIzNXIiHQ2pFbjAYZgZMd6lYkONodHQ - Release Key -->
+
+        </LinearLayout>
+        <!--
+             <TextView
+            android:id="@+id/gpsInformacao"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textSize="14dp" />
+        -->
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/layoutMapa"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical" >
+
+       
+
+        <LinearLayout
+            android:id="@+id/buttonsView2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="5dip" >
+
+            <Button
+                android:id="@+id/paraTras"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_marginLeft="5dip"
+                android:layout_weight="1"
+                android:enabled="true"
+                android:onClick="onPreviousClick"
+                android:text="Back"
+                android:weightSum="1" />
+        </LinearLayout>
+         <LinearLayout
+            android:id="@+id/textoView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/buttonsView2"
+            android:weightSum="2" >
+
+            <TextView
+                android:id="@+id/gpsInformacao"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:textSize="14dp" />
+        </LinearLayout>
+    </RelativeLayout>
+
+</ViewSwitcher>

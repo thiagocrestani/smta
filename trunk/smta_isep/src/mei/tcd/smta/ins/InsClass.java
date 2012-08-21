@@ -16,7 +16,7 @@ import android.util.FloatMath;
 //http://efficient-java-matrix-library.googlecode.com/svn-history/r307/javadoc/ver0.17/org/ejml/ops/NormOps.html
 //http://efficient-java-matrix-library.googlecode.com/svn-history/r181/javadoc/ver0.14/org/ejml/ops/CommonOps.html
 
-public class Smta_INS {
+public class InsClass {
 	// instancia algoritmo de detecção
 	public StopDetection stopDetection = new StopDetection();
 	// Operações
@@ -69,7 +69,7 @@ public class Smta_INS {
 	public DenseMatrix64F resultado=new DenseMatrix64F(3,1);
 	public DenseMatrix64F gravidade=new DenseMatrix64F(3,1);
 
-	public Smta_INS()
+	public InsClass()
 	{
 		this.jaCalculouThreshold = false;
 		this.jaAlinhou = false;

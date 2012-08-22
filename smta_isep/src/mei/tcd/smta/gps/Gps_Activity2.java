@@ -185,7 +185,7 @@ public class Gps_Activity2 extends MapActivity implements GpsStatus.Listener{
 				for (String provider : locationManager.getProviders(criteria, true))
 				{
 					// Regista a aactividade para ser notificada periodicamente.O 0,0 quer dizer sempre que tiver.
-					locationManager.requestLocationUpdates(provider,
+					locationManager.requestLocationUpdates (provider,
 							0,
 							0,
 							pendingIntent);

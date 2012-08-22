@@ -19,7 +19,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.widget.TextView;
-
+// Implementa o callback criado para o efeito OnInsChanged
 public class InsActivity extends Activity implements OnInsChanged{
 	// Valor para passar de radianos para graus
 	private static final float RAD2GRAUS = 57.2957795f;
@@ -182,7 +182,7 @@ public class InsActivity extends Activity implements OnInsChanged{
 		}
 
 	}
-	
+	// Callback do InsListener
 	@Override
 	public void onInsEvent(Enum value) {
 		if(value.name()==mTipoRetorno.orientacao.name())

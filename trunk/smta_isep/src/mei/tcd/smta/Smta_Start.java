@@ -43,7 +43,7 @@ public class Smta_Start extends Activity {
 				}
 				if(item=="GPS"){
 					//strClasse = "ins.Smta_insActivity";
-					strClasse = "gps.Gps_Activity2";
+					strClasse = "gps.Gps_Activity";
 				}
 				
 				try {

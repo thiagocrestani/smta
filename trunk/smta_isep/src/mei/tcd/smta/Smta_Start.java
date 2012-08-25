@@ -22,7 +22,7 @@ public class Smta_Start extends Activity {
 		ListView listView = (ListView) findViewById(R.id.listView1);
 		// String de valores para os itens da listview
 		
-		String[] values = new String[] { "Sensores", "INS / DR","INS / GPS", "GPS", "INS/GPS FUSAO"};
+		String[] values = new String[] { "Sensores", "INS/DR","INS/GPS/Google Maps", "GPS/Google Maps", "INS/GPS/FUSAO/Google Maps"};
 		// Instância do objecto ArrayAdapter passando a referencia da actividade usando o this, uma referencia ao textview predefinido e a lista de valores.
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
 				android.R.layout.simple_list_item_1,  values);
@@ -37,19 +37,19 @@ public class Smta_Start extends Activity {
 				if(item=="Sensores"){
 					strClasse = "sensorinfo.SensorListActivity";
 				}
-				if(item=="INS / DR"){
+				if(item=="INS/DR"){
 					//strClasse = "ins.Smta_insActivity";
 					strClasse = "ins.InsActivity";
 				}
-				if(item=="GPS"){
+				if(item=="GPS/Google Maps"){
 					//strClasse = "ins.Smta_insActivity";
 					strClasse = "gps.Gps_Activity";
 				}
-				if(item=="INS/GPS FUSAO"){
+				if(item=="INS/GPS/FUSAO/Google Maps"){
 					//strClasse = "ins.Smta_insActivity";
 					strClasse = "servicefusion.ServiceActivity";
 				}
-				if(item=="INS / GPS"){
+				if(item=="INS/GPS/Google Maps"){
 					//strClasse = "ins.Smta_insActivity";
 					strClasse = "ins.InsGpsMapsActivity";
 				}

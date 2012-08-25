@@ -1,4 +1,4 @@
-package mei.tcd.filtros;
+package mei.tcd.smta.filtros;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;

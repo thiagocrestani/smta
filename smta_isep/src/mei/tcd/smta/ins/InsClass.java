@@ -21,75 +21,79 @@ public class InsClass {
 	public StopDetection stopDetection = new StopDetection();
 	// Operações
 	private Ops opsins = new Ops();
-	// Definição das matrizes e vetores
+	
 	private static final float FILTRO_COEFICIENTE_GYRO = 0.98f; //O quanto queremos que os resultados se ajustema este
 	// m_cosenos - m_cosenost (Guarda a matriz Direct Cosine Matrix e sua transposta (neste caso sempre igual à inversa))
 	// accel - gyro (Valores para passar para DenseMatrix64F provenientes dos dados do vector aceleração e giroscopio)
 	// posicao - velocidade - aceleracao - aceleracao_N (vetor poiscao,velocidade e aceleracao calculada)
 	// m3identidade - (Matrix 3x3 Identidade)
 	// rotacao - ( vetor rotacao do giroscopio)
-	private DenseMatrix64F dcmeulerX=new DenseMatrix64F(3,3); //9
-	private DenseMatrix64F dcmeulerY=new DenseMatrix64F(3,3); //9
-	private DenseMatrix64F dcmeulerZ=new DenseMatrix64F(3,3); //9
+	
+	// Definição das matrizes e vetores
+	private DenseMatrix64F mDcmeulerX=new DenseMatrix64F(3,3); //Matriz rotação para o eixo do X
+	private DenseMatrix64F mDcmeulerY=new DenseMatrix64F(3,3); //Matriz rotação para o eixo do Y
+	private DenseMatrix64F mDcmeulerZ=new DenseMatrix64F(3,3); //Matriz rotação para o eixo do Z
+	
+	
+	// m_dcmGyro - Matrix DCM proveniente do calculo do giroscopio com inicialização do getrotationmatrix()
+	private DenseMatrix64F m_dcmGyro=new DenseMatrix64F(3,3); // Matriz rotação DCM calculada com o giroscopio.
+	private DenseMatrix64F mGyro=new DenseMatrix64F(3,1); //Guarda valores do giroscopio para o actualiza_VelocidadeGyro() e actualiza_Orientacao_Gyro()
+	private DenseMatrix64F mPosicaoInicialGPS=new DenseMatrix64F(3,1); ///Vem da posição auferida pelo GPS(transfomação de wgs82->ecef->enu).
+	private DenseMatrix64F mPosicao=new DenseMatrix64F(3,1); // Vetor posição no sistema de coordenadas global (ENU)
+	private DenseMatrix64F mVelocidade=new DenseMatrix64F(3,1);// Vetor velocidade no sistema de coordenadas global (ENU)
+	private DenseMatrix64F mAceleracao=new DenseMatrix64F(3,1); // Vetor aceleração no sistema de coordenadas local (Dispositivo)
+	private DenseMatrix64F m3identidade=new DenseMatrix64F(3,3); // Matriz identidade 3x3 para ser usado no calculo do DCM pelo giroscopio (GyroDcm())
 	// Variaveis para calculo
-	private DenseMatrix64F tempResult1=new DenseMatrix64F(3,3); //
-	private DenseMatrix64F tempResult2=new DenseMatrix64F(3,3); //
+	private DenseMatrix64F tempResult1=new DenseMatrix64F(3,3); // Resultado temporario
+	private DenseMatrix64F tempResult2=new DenseMatrix64F(3,3); // Resultado temporario 2
+	private DenseMatrix64F m_temp=new DenseMatrix64F(3,1); // array temporario
+	private DenseMatrix64F m_tempdcm=new DenseMatrix64F(3,3); // DCM temporaria
 	
-	// m_dcmGyro - Matrix DCM proveniente do calculo do giroscopio com inicialização do getrotationmatrix
-	public DenseMatrix64F m_dcmGyro=new DenseMatrix64F(3,3); //9
-	public DenseMatrix64F accel=new DenseMatrix64F(3,1);
-	public DenseMatrix64F gyro=new DenseMatrix64F(3,1);
-	public DenseMatrix64F posicao=new DenseMatrix64F(3,1);
-	public DenseMatrix64F posicao_n=new DenseMatrix64F(3,1); //vetor transformado para referencia de navegaçao
-	public DenseMatrix64F posicaoAnterior=new DenseMatrix64F(3,1);
-	public DenseMatrix64F velocidade=new DenseMatrix64F(3,1);//vetor transformado para referencia de navegaçao
-	public DenseMatrix64F velocidade_n=new DenseMatrix64F(3,1);
-	//public DenseMatrix64F velocidadeAnterior=new DenseMatrix64F(3,1); //método dos trapezios não funciona em intervalos de tempo inconstantes
-	public DenseMatrix64F aceleracao=new DenseMatrix64F(3,1);
-	//public DenseMatrix64F aceleracaoAnterior=new DenseMatrix64F(3,1); //método dos trapezios não funciona em intervalos de tempo inconstantes
-	
-	public DenseMatrix64F m3identidade=new DenseMatrix64F(3,3);
-	public DenseMatrix64F m_rotacao=new DenseMatrix64F(3,1); // Para ser usado no calculo do giroscopio
-	public DenseMatrix64F m_temp=new DenseMatrix64F(3,1);
-	public DenseMatrix64F m_tempdcm=new DenseMatrix64F(3,3);
-	// m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
-	public float[] m_dcm = new float[]{1,0,0,0,1,0,0,0,1};
-	public float[] aprAccMag=new float[3]; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de Acelerometro e magnetometro
-	public float[] aprGyro=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
-	public float[] aprRotVet=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
-	public float[] aprFusao=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) da fusão (Filtro complementar)
-	 // Para guardar valores anteriores do calculo do x e y para plot
-	public float[] arrayXYVew = new float[]{0,0,0}; // x, y, azimuth
-	public float azimuth_anterior ;
-	
+	private float[] m_dcm = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
+	private float[] mAprAccMag=new float[3]; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de Acelerometro e magnetometro
+	private float[] mAprGyro=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
+	private float[] mAprRotVet=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
+	private float[] mAprFusao=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) da fusão (Filtro complementar)
+		
 	public boolean jaCalculouThreshold;
 	public boolean jaAlinhou;
 	
 	//#################### Para debug
 	public DenseMatrix64F resultado=new DenseMatrix64F(3,1);
-	public DenseMatrix64F gravidade=new DenseMatrix64F(3,1);
+	public DenseMatrix64F mGravidade=new DenseMatrix64F(3,1);
 
 	public InsClass()
 	{
 		this.jaCalculouThreshold = false;
 		this.jaAlinhou = false;
-		gravidade.set(2,-SensorManager.GRAVITY_EARTH); //{0,0,g} - Este vector servirá como base para calculo da variação do sistema de coordenadas disposito para navegação
+		mGravidade.set(2,-SensorManager.GRAVITY_EARTH); //{0,0,g} - Este vector servirá como base para calculo da variação do sistema de coordenadas disposito para navegação
 		m3identidade = CommonOps.identity(3,3);
 		//aceleracaoAnterior.zero();
-		aceleracao.zero();
-		velocidade.zero();
-		
-		azimuth_anterior = 0;
-		posicao.zero();
+		mAceleracao.zero();
+		mVelocidade.zero();
+		mPosicao.zero();// Aqui tenho de colocar a posicao inicial do GPS. Isso é efectuado com um setter
+				
 		m_dcmGyro = CommonOps.identity(3,3);
 	}
 
 	
 	//----------------------------------- Inicio do processo de navegação inercial  ---------------------------------------
 	/**
-	 * Inicialização de matriz cosenos directores (m_dcm) para guardar valores dos getRotationMatrix
+	 * Inicialização da posição do INS com uma posição do GPS. O GPS envia coordenadas LAT/LONG/ALT em WGS84.
+	 * Tenho de transformar WGS84-> ECEF- > ENU (Plano tangente à terra)
+	 * 
+	 * @param _posicaoInicialGPS array Double proveniente da transformação WGS84-> ECEF- > ENU com classe estatica Coordenadas
+	 */
+	public void setPosicaoInicial(double[] _posicaoInicialGPS) {
+		mPosicaoInicialGPS.set(0,_posicaoInicialGPS[0]);
+		mPosicaoInicialGPS.set(1,_posicaoInicialGPS[1]);
+		mPosicaoInicialGPS.set(2,_posicaoInicialGPS[2]);
+		
+	}
+	/**
+	 * Inicialização de matriz cosenos directores (m_dcm) para guardar valores provenientes do getRotationMatrix.
 	 * Resulta numa matriz de 3x3 onde os valores representam os cosenos dos algulos entre os eixos do 
-	 * referencial do dispositivo e do referencial de navegação.
+	 * referencial do dispositivo e do referencial de navegação (ENU).
 	 * 
 	 * @param dcm matrix resultante do método getRotationMatrix()
 	 */
@@ -101,7 +105,7 @@ public class InsClass {
 	
 	
 	/**
-	 * Inicialização de matriz cosenos directores (m_dcmGyro) para guardar a matriz rotação calculada derivada do giroscopio
+	 * Inicialização de matriz cosenos directores (m_dcmGyro) para guardar a matriz rotação calculada derivada da fusão do giroscopio com o ACC+MAG.
 	 * Resulta numa matriz de 3x3 onde os valores representam os cosenos dos algulos entre os eixos do 
 	 * referencial do dispositivo e do referencial de navegação.
 	 * 
@@ -112,73 +116,73 @@ public class InsClass {
 			m_dcmGyro.set(i,dcm[i]);
 		}
 	}
-	// Não Uso ainda-----------------------------------------------------------
 	/**
-	 * vai buscar o vetor posição no referencial de navegação
-	 * a m_dcm é sempre a actual, seja que tipo de orientação estiver a ser usado, mesmo a fusaõ pois usa os dois m_dcm e mdcmGyro
-	 * Pnavegacao = DCM * Pinercial
+	 * Retorna o vetor Azimuth, pitch  roll (Z, X, Y) referente ao getOrientation() obtido do acelerometro e magnetometro.
 	 * 
+	 * @return array float Azimuth, pitch  roll (Z, X, Y)
 	 */
-	public float[] getPosicao_N()
+	public float[] getAprAccMag()
 	{
-		CommonOps.mult(getFloatToDense3x3(m_dcm),posicao,posicao_n);
-		
-		return  new float[]{(float) posicao_n.get(0),(float) posicao_n.get(1),(float) posicao_n.get(2)};
-	}
-//	/**
-//	 * vai buscar o vetor posição no referencial de dispositivo
-//	 * a m_dcm é sempre a actual, seja que tipo de orientação estiver a ser usado.
-//	 * Pnavegacao = DCM * Pinercial
-//	 * 
-//	 */
-//	public float[] getPosicao_D()
-//	{
-//		for(int i=0;i<3;i++)
-//			m_temp_array3[i] = (float) posicao.get(i);
-//		
-//		return m_temp_array3;
-//	}
-	/**
-	 * vai buscar o vetor velocidade no referencial de navegação
-	 * a m_dcm é sempre a actual, seja que tipo de orientação estiver a ser usado. Uso esta apenas para testar se o sinal da velocidade varia consoante a orientação global
-	 * Vnavegacao = DCM * Vinercial
-	 * 
-	 */
-	public float[] getVelocidade_N()
-	{
-		CommonOps.mult(getFloatToDense3x3(m_dcm),velocidade,velocidade_n);
-		// para passar para float
-		return  new float[]{(float) velocidade_n.get(0),(float) velocidade_n.get(1),(float) velocidade_n.get(2)};
+		return  this.mAprAccMag;
 	}
 	/**
-	 * O dispositivo pode ficar colocado da diagonal, logo tenho de devolver a velodidade como sendo o conjunto das duas compoenentes do vetor
-	 * o Y e o Z, visto que o x está paralelo ao horizonte.
+	 * Retorna o vetor Azimuth, pitch  roll (Z, X, Y) referente ao getOrientation() com o sensor Giroscopio.
+	 * Vai ser usado para calcular o aprFusao.
+	 * 
+	 * @return array float Azimuth, pitch  roll (Z, X, Y)
+	 */
+	public float[] getAprGyro()
+	{
+		return  this.mAprGyro;
+	}
+	/**
+	 * Retorna o vetor Azimuth, pitch  roll (Z, X, Y) referente ao getOrientation() com o sensor RotationVector e getRotationMatrixFromVetor().
+	 * 
+	 * 
+	 * @return array float Azimuth, pitch  roll (Z, X, Y)
+	 */
+	public float[] getAprRotVet()
+	{
+		return  this.mAprRotVet;
+	}
+	/**
+	 * Retorna o vetor Azimuth, pitch  roll (Z, X, Y) referente ao getOrientation() da fusão Acc+Mag+Gyro.
+	 * 
+	 * 
+	 * @return array float Azimuth, pitch  roll (Z, X, Y)
+	 */
+	public float[] getAprFusao()
+	{
+		return  this.mAprFusao;
+	}
+	/**
+	 * Retorna a posicao actual em ENU, pois a posição já não está no referencial inercial (Body)
+	 * 
+	 * @return array float posicao
+	 */
+	public float[] getPosicao()
+	{
+		return  new float[]{(float) mPosicao.get(0),(float) mPosicao.get(1),(float) mPosicao.get(2)};
+	}
+	/**
+	 * O dispositivo pode ficar colocado da diagonal, logo tenho de devolver a velocidade como sendo o conjunto das duas componentes do vetor
+	 * o Y e o Z, visto que o x está paralelo ao horizonte, ou ao eixo das rodas do veículo.
+	 * 
+	 * @return magnitude float da velocidade sobre os dois eixos. 
 	 */
 	public float getVelocidadeTotal()
 	{
-		return opsins.getMagnitude(new float[]{(float) velocidade.get(1),(float) velocidade.get(2)});
+		return opsins.getMagnitude(new float[]{(float) mVelocidade.get(1),(float) mVelocidade.get(2)});
 	}
+	
 	/**
-	 * Vai estipular o x e o y para efectuar o plot na view.
-	 * O arrayXYVew guarda o valor anterior.
-	 * Usa formula de x=vxcos(azimuth) e y=vxsin(azimuth).
-	 */
-	public float[] getXYView()
-	{
-		float[] retval = new float[3];
-		retval[0] = (float) (arrayXYVew[0] +  ((getVelocidadeTotal() )*Math.cos(azimuth_anterior)));
-		retval[1] = (float) (arrayXYVew[1] +  ((getVelocidadeTotal() )*Math.sin(azimuth_anterior)));
-		retval[2] = getVelocidadeTotal(); // Já não precisa, mas fica para já
-		arrayXYVew[0] = retval[0];
-		arrayXYVew[1] = retval[1];
-		return retval;
-	}
-	/**
-	 * Calculo da velocidade linear. Removo a gravidade da aceleração aproximadamente fazendo aceleracao += dcm_T x gravidade
+	 * Calculo da velocidade linear. Removo a gravidade da aceleração aproximadamente fazendo aceleracao += dcm_T x gravidade. 
+	 * Posso usar mais, pois o vetor gravidade está com sinal menos. 
 	 * Com esta transformação, passo o vetor gravidade do referencial da terra para 
-	 * o referencial do dispositivo elaborando o calculo de dcm_T*g e assim tenho o peso da gravidade no dispositivo
+	 * o referencial do dispositivo elaborando o calculo de dcm_T*g e assim tenho o peso da gravidade no dispositivo.
 	 * 
-	 * @param dados valors do acelerometro
+	 * @param dados array float valores do acelerometro
+	 * @return array float da velocidade linear.
 	 * 
 	 */
 	public float[] getAccLinear(float[] dados)
@@ -189,51 +193,100 @@ public class InsClass {
 		// Dcm em float, tenho de passar para densematrix64f
 		for (int i = 0;i<9;i++)
 			m_tempdcm.set(i,m_dcm[i]);
-		
-		CommonOps.multAddTransA(m_tempdcm, gravidade, m_temp);
+		//m_temp = m_temp + m_tempdcm * gravidade
+		CommonOps.multAddTransA(m_tempdcm, mGravidade, m_temp);
 		return new float[]{(float) m_temp.get(0),(float) m_temp.get(1),(float) m_temp.get(2)};
 	}
 	/**
 	 * Calculo da velocidade.Integração numerica regra dos trapézios não funciona pois os intervalos de tempo não são constantes....
 	 * 
-	 * @param dados dados do meu acelerometro linear
-	 * @param dt intervalo de tempo entra registos
+	 * @param dados array float dados do meu acelerometro linear
+	 * @param dt intervalo de tempo entre registos
 	 */
 	public void actualiza_Velocidade(float[] dados, float dt)
 	{
 		//aceleracaoAnterior.set(aceleracao); // Servirá para determinar a velocidade como (a0+a1/2) * dt trapezios
-		aceleracao.set(0,dados[0]); //x
-		aceleracao.set(1,dados[1]); //y
-		aceleracao.set(2,dados[2]); //z
-		CommonOps.addEquals(velocidade, dt,aceleracao);
+		mAceleracao.set(0,dados[0]); //x
+		mAceleracao.set(1,dados[1]); //y
+		mAceleracao.set(2,dados[2]); //z
+		// velocidade = velocidade + dt*aceleracao
+		CommonOps.addEquals(mVelocidade, dt,mAceleracao);
+		// Tenho de passar imediatamente a aceleração para ENU global referencial e só altera direcção de acelerelação variar
+//		for (int i = 0;i<9;i++)
+//			m_tempdcm.set(i,m_dcm[i]);
+//		CommonOps.multAddTransA(dt,m_tempdcm,aceleracao,velocidade);
 		
 		
 	}
 	/**
-	 * Calculo da posição. 
+	 * Calculo da velocidade com integração do giroscópio.Integração numerica . 
+	 * Aqui tenho de calcular a velocidade juntamente com os angulos do giroscopio. Velocidade em curva.
+	 * Aceleração CENTRIPETA?? Visto que tenho a velocidade em Coordenadas Globais, tenho de passaar para locais para fazer a conta?
+	 * Visto que um vetor tem direcção e magnitude, qualquer alteração na direcção, existe uma alteração na velocidade. Esta força chama-se força centripeta.
+	 * 
+	 * Mais, não temos e ter em atenção o efeito aceleração coriolis do movimento da terra, pois os efeitos são pequenos sobre pequenas diatância ou intervalos de tempo.
+	 * 
+	 * 
+	 * @param dados array float dados do meu acelerometro linear
+	 * @param dt intervalo de tempo entra registos
+	 */
+	public void actualiza_VelocidadeGyro(float[] dados, float dt)
+	{
+		mGyro.set(0, dados[0]);
+		mGyro.set(1, dados[1]);
+		mGyro.set(2, dados[2]);
+		tempResult1 = getAntiSimetrica(mVelocidade);
+	   
+		//velocidade = velocidade+dt*tempResult1*gyro
+		CommonOps.multAdd(dt, tempResult1, mGyro, mVelocidade); 
+		
+		
+	}
+	/**
+	 * Calculo da posição. Já no referencial global pois multiplico pela DCM os valores da velocidade. 
+	 * 
 	 * @param dt
 	 */
 	public void actualiza_Posicao(float dt) {
-		//Actualiza posicao com a velocidade (posicao=posicao+dt*velocidade)
-		posicaoAnterior.set(posicao) ;
-		CommonOps.addEquals(posicao, dt, velocidade);
+		// Tenho de passar para global referencial a velocidade pois à medida que aumna, tenho de orientar a direcção
+		for (int i = 0;i<9;i++)
+			m_tempdcm.set(i,m_dcm[i]);
+		
+		CommonOps.multAddTransA(dt,m_tempdcm,mVelocidade,mPosicao);
+		//CommonOps.addEquals(posicao,posicaoInicialGPS);
+		//CommonOps.addEquals(posicao, dt, velocidade);
+		
+	}
+	/**
+	 * Calculo da posição com gyro. TENHO DUVIDAS SE DEVEREI PASSAR TAMBEM ESTE VECTOR PARA GLOBAL ENU
+	 * CENTRIPETA?? tenho de efectuar o mesmo à posição?
+	 * @param dt
+	 */
+	public void actualiza_PosicaoGyro(float[] dados,float dt) {
+		mGyro.set(0, dados[0]);
+		mGyro.set(1, dados[1]);
+		mGyro.set(2, dados[2]);
+		tempResult1 = getAntiSimetrica(mPosicao); //Para poder efectuat o produto vectorial
+    	//Update for the rotation (Pos_b=Pos_b+cross(Pos_b,gyro)
+		//skew(Pos_b, mx_a);
+		CommonOps.multAdd(dt, tempResult1, mGyro, mPosicao);
 		
 	}
 	/**
 	 * Actualiza o Azimuth, pitch e roll de acordo com o getrotationmatrix() e Acc+Mag
 	 * 
 	 *  
-	 * @param dMag vetor dados do magnetometro
-	 * @param dAcc vetor dados do acelerometro
+	 * @param dMag array float vetor dados do magnetometro
+	 * @param dAcc array float vetor dados do acelerometro
 	 * 
 	 */
 	public void calculaAccMagOrientacao(float[] dMag, float[] dAcc)
 	{
-		azimuth_anterior = aprAccMag[0]; // Para calculo XYVIEW
+		//azimuth_anterior = aprAccMag[0]; // Para calculo XYVIEW
 		if(dMag!=null && dAcc!=null)
 		{
 			if(SensorManager.getRotationMatrix(m_dcm, null, dAcc, dMag)) {
-				SensorManager.getOrientation(m_dcm, this.aprAccMag);
+				SensorManager.getOrientation(m_dcm, this.mAprAccMag);
 			}
 		}
 	}
@@ -241,37 +294,37 @@ public class InsClass {
 	 * Actualiza o Azimuth, pitch e roll de acordo com o getrotationmatrix() e sensor RotationVector
 	 * 
 	 *  
-	 * @param dRotVet vetor dados do RotationVector
+	 * @param dRotVet  array float vetor dados do RotationVector
 	 * 
 	 */
 	public void calculaRotVetOrientacao(float[] dRotVet) {
-		azimuth_anterior = aprRotVet[0]; // Para calculo XYVIEW
+		//azimuth_anterior = aprRotVet[0]; // Para calculo XYVIEW
 		SensorManager.getRotationMatrixFromVector(m_dcm, dRotVet);
-		SensorManager.getOrientation(m_dcm, this.aprRotVet);
+		SensorManager.getOrientation(m_dcm, this.mAprRotVet);
 	}
 	/**
-	 * Actualiza o Azimuth, pitch e roll de acordo com o nosso filtro complementar Acc+Mag+Gyro
+	 * Actualiza o Azimuth, pitch e roll de acordo com o filtro complementar Acc+Mag+Gyro
 	 * 
 	 *  
-	 * @param dGyro vetor dados do giroscopio
+	 * @param dGyro array float vetor dados do giroscopio
 	 * @param dt intervalo de tempo entre o ultimo evento e o anterior
 	 * 
 	 */
 	public void calculaFusaoOrientacao(float[] dGyro, float dt)
 	{
-		azimuth_anterior = aprGyro[0]; // Para calculo XYVIEW
+		//azimuth_anterior = aprGyro[0]; // Para calculo XYVIEW
 		float[] copyGyro = new float[3];
 		float dt2 = dt;
-		copyGyro = dGyro.clone();
+		copyGyro = dGyro.clone(); //copiar os valores
 		// Usa método para actualizar a DCM a matriz rotação do Gyro
 		this.actualiza_Orientacao_Gyro(copyGyro,dt2);
-		SensorManager.getOrientation(getDcmFloat3x3(m_dcmGyro), aprGyro);
+		SensorManager.getOrientation(getDcmFloat3x3(m_dcmGyro), mAprGyro);
 		calculaFusao();
 	}
 	/**
 	 * Implementa o algoritmo do filtro complementar. http://web.mit.edu/scolton/www/filter.pdf
-	 * Pega no resultado do vetor fusão aprfusao e acha a matriz rotação para actualizar a matriz rotação do giroscopio.
-	 * Crio a DCM com a nova orientação. Compenso o drift do giroscopio com o fused
+	 * Pega no resultado do vetor fusão aprfusao e acha a matriz rotação através dos angulos de Euler para actualizar a matriz rotação do giroscopio.
+	 * Crio a DCM com a nova orientação. Compenso o drift do giroscopio com a fusão
 	 * 
 	 * 
 	 */
@@ -293,42 +346,42 @@ public class InsClass {
 		//
 		// Corrige problema de diferença entre a 179º e -179º medido em tempos diferentes por cada sensor
 		// azimuth
-		if (this.aprGyro[0] < -0.5 * Math.PI && this.aprAccMag[0] > 0.0) {
-			aprFusao[0] = (float) (FILTRO_COEFICIENTE_GYRO * (this.aprGyro[0] + 2.0 * Math.PI) + FILTRO_COEFICIENTE_ACCMAG * this.aprAccMag[0]);
-			aprFusao[0] -= (aprFusao[0] > Math.PI) ? 2.0 * Math.PI : 0;
+		if (this.mAprGyro[0] < -0.5 * Math.PI && this.mAprAccMag[0] > 0.0) {
+			mAprFusao[0] = (float) (FILTRO_COEFICIENTE_GYRO * (this.mAprGyro[0] + 2.0 * Math.PI) + FILTRO_COEFICIENTE_ACCMAG * this.mAprAccMag[0]);
+			mAprFusao[0] -= (mAprFusao[0] > Math.PI) ? 2.0 * Math.PI : 0;
 		}
-		else if (this.aprAccMag[0] < -0.5 * Math.PI && this.aprGyro[0] > 0.0) {
-			aprFusao[0] = (float) (FILTRO_COEFICIENTE_GYRO * this.aprGyro[0] + FILTRO_COEFICIENTE_ACCMAG * (this.aprAccMag[0] + 2.0 * Math.PI));
-			aprFusao[0] -= (aprFusao[0] > Math.PI)? 2.0 * Math.PI : 0;
+		else if (this.mAprAccMag[0] < -0.5 * Math.PI && this.mAprGyro[0] > 0.0) {
+			mAprFusao[0] = (float) (FILTRO_COEFICIENTE_GYRO * this.mAprGyro[0] + FILTRO_COEFICIENTE_ACCMAG * (this.mAprAccMag[0] + 2.0 * Math.PI));
+			mAprFusao[0] -= (mAprFusao[0] > Math.PI)? 2.0 * Math.PI : 0;
 		}
 		else {
-			aprFusao[0] = FILTRO_COEFICIENTE_GYRO * this.aprGyro[0] + FILTRO_COEFICIENTE_ACCMAG * this.aprAccMag[0];
+			mAprFusao[0] = FILTRO_COEFICIENTE_GYRO * this.mAprGyro[0] + FILTRO_COEFICIENTE_ACCMAG * this.mAprAccMag[0];
 		}
 
 		// pitch
-		if (this.aprGyro[1] < -0.5 * Math.PI && this.aprAccMag[1] > 0.0) {
-			aprFusao[1] = (float) (FILTRO_COEFICIENTE_GYRO * (this.aprGyro[1] + 2.0 * Math.PI) + FILTRO_COEFICIENTE_ACCMAG * this.aprAccMag[1]);
-			aprFusao[1] -= (aprFusao[1] > Math.PI) ? 2.0 * Math.PI : 0;
+		if (this.mAprGyro[1] < -0.5 * Math.PI && this.mAprAccMag[1] > 0.0) {
+			mAprFusao[1] = (float) (FILTRO_COEFICIENTE_GYRO * (this.mAprGyro[1] + 2.0 * Math.PI) + FILTRO_COEFICIENTE_ACCMAG * this.mAprAccMag[1]);
+			mAprFusao[1] -= (mAprFusao[1] > Math.PI) ? 2.0 * Math.PI : 0;
 		}
-		else if (this.aprAccMag[1] < -0.5 * Math.PI && this.aprGyro[1] > 0.0) {
-			aprFusao[1] = (float) (FILTRO_COEFICIENTE_GYRO * this.aprGyro[1] + FILTRO_COEFICIENTE_ACCMAG * (this.aprAccMag[1] + 2.0 * Math.PI));
-			aprFusao[1] -= (aprFusao[1] > Math.PI)? 2.0 * Math.PI : 0;
+		else if (this.mAprAccMag[1] < -0.5 * Math.PI && this.mAprGyro[1] > 0.0) {
+			mAprFusao[1] = (float) (FILTRO_COEFICIENTE_GYRO * this.mAprGyro[1] + FILTRO_COEFICIENTE_ACCMAG * (this.mAprAccMag[1] + 2.0 * Math.PI));
+			mAprFusao[1] -= (mAprFusao[1] > Math.PI)? 2.0 * Math.PI : 0;
 		}
 		else {
-			aprFusao[1] = FILTRO_COEFICIENTE_GYRO * this.aprGyro[1] + FILTRO_COEFICIENTE_ACCMAG * this.aprAccMag[1];
+			mAprFusao[1] = FILTRO_COEFICIENTE_GYRO * this.mAprGyro[1] + FILTRO_COEFICIENTE_ACCMAG * this.mAprAccMag[1];
 		}
 
 		// roll
-		if (this.aprGyro[2] < -0.5 * Math.PI && this.aprAccMag[2] > 0.0) {
-			aprFusao[2] = (float) (FILTRO_COEFICIENTE_GYRO * (this.aprGyro[2] + 2.0 * Math.PI) + FILTRO_COEFICIENTE_ACCMAG * this.aprAccMag[2]);
-			aprFusao[2] -= (aprFusao[2] > Math.PI) ? 2.0 * Math.PI : 0;
+		if (this.mAprGyro[2] < -0.5 * Math.PI && this.mAprAccMag[2] > 0.0) {
+			mAprFusao[2] = (float) (FILTRO_COEFICIENTE_GYRO * (this.mAprGyro[2] + 2.0 * Math.PI) + FILTRO_COEFICIENTE_ACCMAG * this.mAprAccMag[2]);
+			mAprFusao[2] -= (mAprFusao[2] > Math.PI) ? 2.0 * Math.PI : 0;
 		}
-		else if (this.aprAccMag[2] < -0.5 * Math.PI && this.aprGyro[2] > 0.0) {
-			aprFusao[2] = (float) (FILTRO_COEFICIENTE_GYRO * this.aprGyro[2] + FILTRO_COEFICIENTE_ACCMAG * (this.aprAccMag[2] + 2.0 * Math.PI));
-			aprFusao[2] -= (aprFusao[2] > Math.PI)? 2.0 * Math.PI : 0;
+		else if (this.mAprAccMag[2] < -0.5 * Math.PI && this.mAprGyro[2] > 0.0) {
+			mAprFusao[2] = (float) (FILTRO_COEFICIENTE_GYRO * this.mAprGyro[2] + FILTRO_COEFICIENTE_ACCMAG * (this.mAprAccMag[2] + 2.0 * Math.PI));
+			mAprFusao[2] -= (mAprFusao[2] > Math.PI)? 2.0 * Math.PI : 0;
 		}
 		else {
-			aprFusao[2] = FILTRO_COEFICIENTE_GYRO * this.aprGyro[2] + FILTRO_COEFICIENTE_ACCMAG * this.aprAccMag[2];
+			mAprFusao[2] = FILTRO_COEFICIENTE_GYRO * this.mAprGyro[2] + FILTRO_COEFICIENTE_ACCMAG * this.mAprAccMag[2];
 		}
 		// Crio a DCM com a nova orientação
 		// compenso o drift do giroscopio com o fused
@@ -345,14 +398,11 @@ public class InsClass {
 		
 		//SensorManager.getRotationMatrixFromVector(deltaRotationMatrix,aprFusao);
 		//this.set_dcmGyro(getDcmFromEuler(aprFusao));
-		m_dcmGyro.set(getDcmFromEuler(aprFusao));
-		System.arraycopy(aprFusao, 0, this.aprGyro, 0, 3);
+		m_dcmGyro.set(getDcmFromEuler(mAprFusao));
+		System.arraycopy(mAprFusao, 0, this.mAprGyro, 0, 3); //copia de elementos de array
 		//actualizaOrientacao(mFusao);
 	}
 	
-	 // Algoritmo simplificado de conversão ordem de multiplicação y,x,z
-	 // http://www.flipcode.com/documents/matrfaq.html#Q36
-	// http://www.geometrictools.com/Documentation/EulerAngles.pdf
 	/**
 	 * Calcula a matriz do cosenos (matriz rotação) a partir dos angulos de Euler.
 	 * http://www.geometrictools.com/Documentation/EulerAngles.pdf
@@ -360,6 +410,7 @@ public class InsClass {
 	 * http://www.flipcode.com/documents/matrfaq.html#Q36
 	 * 
 	 * @param apr vetor dos angulos de euler (Azimuth, Pitch e Roll
+	 * @return DenseMatrix64F matriz rotação
 	 */
 	  private DenseMatrix64F getDcmFromEuler(float[] apr) {
 			     
@@ -370,29 +421,29 @@ public class InsClass {
 	        float sinZ = FloatMath.sin(apr[0]);
 	        float cosZ = FloatMath.cos(apr[0]);
 	        // Rotação ao longo do X
-	        dcmeulerX.zero();
-	        dcmeulerX.set(0,1.0f);
-	        dcmeulerX.set(4,cosX);
-	        dcmeulerX.set(5,sinX);
-	        dcmeulerX.set(7,-sinX);
-	        dcmeulerX.set(8,cosX);
+	        mDcmeulerX.zero();
+	        mDcmeulerX.set(0,1.0f);
+	        mDcmeulerX.set(4,cosX);
+	        mDcmeulerX.set(5,sinX);
+	        mDcmeulerX.set(7,-sinX);
+	        mDcmeulerX.set(8,cosX);
 	        // Rotação ao longo do Y
-	        dcmeulerY.zero();
-	        dcmeulerY.set(0,cosY);
-	        dcmeulerY.set(2,sinY);
-	        dcmeulerY.set(4,1.0f);
-	        dcmeulerY.set(6,-sinY);
-	        dcmeulerY.set(8,cosY);
+	        mDcmeulerY.zero();
+	        mDcmeulerY.set(0,cosY);
+	        mDcmeulerY.set(2,sinY);
+	        mDcmeulerY.set(4,1.0f);
+	        mDcmeulerY.set(6,-sinY);
+	        mDcmeulerY.set(8,cosY);
 	        // Rotação ao longo do Z
-	        dcmeulerZ.zero();
-	        dcmeulerZ.set(0,cosZ);
-	        dcmeulerZ.set(1,sinZ);
-	        dcmeulerZ.set(3,-sinZ);
-	        dcmeulerZ.set(4,cosZ);
-	        dcmeulerZ.set(8,1.0f);
+	        mDcmeulerZ.zero();
+	        mDcmeulerZ.set(0,cosZ);
+	        mDcmeulerZ.set(1,sinZ);
+	        mDcmeulerZ.set(3,-sinZ);
+	        mDcmeulerZ.set(4,cosZ);
+	        mDcmeulerZ.set(8,1.0f);
 	       
-	        CommonOps.mult(dcmeulerX, dcmeulerY, tempResult1);
-	        CommonOps.mult(dcmeulerZ,tempResult1, tempResult2);
+	        CommonOps.mult(mDcmeulerX, mDcmeulerY, tempResult1);
+	        CommonOps.mult(mDcmeulerZ,tempResult1, tempResult2);
 	        
 	        return tempResult2;
 
@@ -400,7 +451,7 @@ public class InsClass {
 	    
 	   
 	/**
-	 * Actualiza a orientação de acordo com a actualização DCM em
+	 * Actualiza a orientação de acordo com a DCM em
 	 * http://pt.scribd.com/doc/58403201/51/Direction-Cosine-Matrix-DCM-Representation
 	 *  
 	 * @param dados dados provenientes do giroscopio
@@ -408,15 +459,15 @@ public class InsClass {
 	 * 
 	 */
 	public void actualiza_Orientacao_Gyro(float[] dadosG, float dt) {
-		m_rotacao.set(0,dadosG[0]*dt);
-		m_rotacao.set(1,dadosG[1]*dt);
-		m_rotacao.set(2,dadosG[2]*dt);
-		gyroDcm(m_rotacao); //calculo nova DCM
+		mGyro.set(0,dadosG[0]*dt);
+		mGyro.set(1,dadosG[1]*dt);
+		mGyro.set(2,dadosG[2]*dt);
+		gyroDcm(mGyro); //calculo nova DCM
 		
 	}
 	
 	/**
-	 * Processo de discretização
+	 * Processo de discretização para actualização da DCM
 	 * http://pt.scribd.com/doc/58403201/51/Direction-Cosine-Matrix-DCM-Representation
 	 * 
 	 * 1º Calcular a matriz anti-simetrica para facilitar o calculo do produto vetorial ou soma A-1 = AT do vetor rotação
@@ -480,7 +531,7 @@ public class InsClass {
 		tempAntisimetrica.set(2,1,vetor.get(0));
 		return tempAntisimetrica;
 	}
-	//---------------------------------------- Funções Utilitarias ---------------------------------------------
+	//---------------------------------------- Funções Utilitarias e de DEBUG ---------------------------------------------
 	/**
 	 * Pega num vetor em float[] ,passa-o para DenseMatrix64F e transforma-o no referencial de navegação multiplicando pela matriz DCM.
 	 * 

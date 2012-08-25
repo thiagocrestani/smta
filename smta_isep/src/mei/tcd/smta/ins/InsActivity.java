@@ -19,22 +19,22 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.widget.TextView;
-// Implementa o callback criado para o efeito OnInsChanged
+// Implementa o callback interface para o efeito OnInsChanged
 public class InsActivity extends Activity implements OnInsChanged{
 	// Valor para passar de radianos para graus
 	private static final float RAD2GRAUS = 57.2957795f;
 	// Tipo de retorno de acordo com o listener no ins
 	public enum mTipoRetorno {inicializar,orientacao, velocidade, posicao};
 	// A minha views para o INS
-	OrientacaoView orientacaoView;
-	VelocidadeView velocidadeView;
-	CaminhoView caminhoView;
+	private OrientacaoView orientacaoView;
+	private VelocidadeView velocidadeView;
+	private CaminhoView caminhoView;
 	// Instancia do listener 
-	InsListener insListener;
-	ProgressDialog dialog;
+	private InsListener insListener;
+	private ProgressDialog dialog;
 	// ---------------------------------------- PARA DEBUG DE INFORMAÇAO -----------------------------------
 	// referenciar as views
-	TextView debugView;
+	private TextView debugView;
 	// Writer de dados
 	public SensorWriterSmta sensorWriter = new SensorWriterSmta();
 	// ---------------------------------------- FIM DEBUG DE INFORMAÇAO -----------------------------------

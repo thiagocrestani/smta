@@ -35,6 +35,11 @@
         <activity android:name=".ins.Smta_INS_Activity"></activity>
         <activity android:name=".gps.Gps_Activity"></activity>
         <activity android:name=".gps.Gps_Activity2"></activity>
+        <activity android:name=".servicefusion.ServiceActivity"></activity>
+        <activity android:name=".gps.Gps_Activity"></activity>
+        <activity android:name=".ins.InsActivity"></activity>
+        <service android:name=".servicefusion.ServiceFusao"></service>
+        <activity android:name=".ins.InsGpsMapsActivity"></activity>
     </application>
 
 </manifest>

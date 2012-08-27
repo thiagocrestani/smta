@@ -114,7 +114,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 			stopBtn.setEnabled(true);
 			gpsListener.startGps();
 			dialog.setCancelable(false);
-			dialog.setMessage("A inicializar...a obter lat/long do GPS");
+			dialog.setMessage("A inicializar...a tentar obter localização do GPS!");
 			dialog.show();
 			mComecou = true;
 		}
@@ -255,7 +255,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		insListener.setPosicaoInicial(posinicialEcef);
 		dialog.dismiss();
 		dialog.setCancelable(false);
-		dialog.setMessage("A inicializar...o ins");
+		dialog.setMessage("Localização GPS obtida. A inicializar o INS...");
 		// passo a posicao inicial para o INS
 		
 		dialog.show();

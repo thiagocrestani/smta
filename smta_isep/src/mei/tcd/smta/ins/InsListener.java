@@ -303,7 +303,7 @@ public class InsListener implements SensorEventListener {
 						}
 						// Actualizo a minha posição independentemente de estar ou não a ganhar velocidade
 						ins.actualiza_Posicao(dt); // Actualiza a posicao
-						velocidade = (float) ins.getVelocidadeTotal() / MSTOKM;
+						velocidade = (float) ins.getVelocidadeTotal() / MSTOKM; // A velocidade total apenas mede Y + Z quando telefone na diagonal
 						listener.onInsEvent(tipoRetorno.velocidade);
 						
 
@@ -423,7 +423,7 @@ public class InsListener implements SensorEventListener {
 				});
 			}
 		}; 
-		posicaoTimer.schedule(timerTask, 10000,3000);
+		posicaoTimer.schedule(timerTask, 7000,500);
 	}
 	/**
 	 * Interface para comunicar com a classe que implmenta esta interface e assim aceder aos callbacks efectuados

@@ -50,6 +50,7 @@ public class InsClass {
 	private DenseMatrix64F m_tempdcm=new DenseMatrix64F(3,3); // DCM temporaria
 	
 	private float[] m_dcm = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
+	private float[] m_dcmposicao = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
 	private float[] mAprAccMag=new float[3]; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de Acelerometro e magnetometro
 	private float[] mAprGyro=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
 	private float[] mAprRotVet=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
@@ -66,7 +67,7 @@ public class InsClass {
 	{
 		this.jaCalculouThreshold = false;
 		this.jaAlinhou = false;
-		mGravidade.set(2,-SensorManager.GRAVITY_EARTH); //{0,0,g} - Este vector servirá como base para calculo da variação do sistema de coordenadas disposito para navegação
+		mGravidade.set(2,-SensorManager.GRAVITY_EARTH); //{0,0,-g} - Este vector servirá como base para calculo da variação do sistema de coordenadas disposito para navegação
 		m3identidade = CommonOps.identity(3,3);
 		//aceleracaoAnterior.zero();
 		mAceleracao.zero();
@@ -85,10 +86,10 @@ public class InsClass {
 	 * @param _posicaoInicialGPS array Double proveniente da transformação WGS84-> ECEF- > ENU com classe estatica Coordenadas
 	 */
 	public void setPosicaoInicial(double[] _posicaoInicialGPS) {
-		mPosicaoInicialGPS.set(0,_posicaoInicialGPS[0]);
-		mPosicaoInicialGPS.set(1,_posicaoInicialGPS[1]);
+		mPosicaoInicialGPS.set(0,_posicaoInicialGPS[0]);// Y-north-Latitude
+		mPosicaoInicialGPS.set(1,_posicaoInicialGPS[1]);// X-east-Longitude
 		mPosicaoInicialGPS.set(2,_posicaoInicialGPS[2]);
-		
+		mPosicao.set(mPosicaoInicialGPS);
 	}
 	/**
 	 * Inicialização de matriz cosenos directores (m_dcm) para guardar valores provenientes do getRotationMatrix.
@@ -206,9 +207,9 @@ public class InsClass {
 	public void actualiza_Velocidade(float[] dados, float dt)
 	{
 		//aceleracaoAnterior.set(aceleracao); // Servirá para determinar a velocidade como (a0+a1/2) * dt trapezios
-		mAceleracao.set(0,dados[0]); //x
-		mAceleracao.set(1,dados[1]); //y
-		mAceleracao.set(2,dados[2]); //z
+		mAceleracao.set(0,dados[0]); //x - East
+		mAceleracao.set(1,dados[1]); //y - North
+		mAceleracao.set(2,dados[2]); //z - Up
 		// velocidade = velocidade + dt*aceleracao
 		CommonOps.addEquals(mVelocidade, dt,mAceleracao);
 		// Tenho de passar imediatamente a aceleração para ENU global referencial e só altera direcção de acelerelação variar
@@ -287,6 +288,7 @@ public class InsClass {
 		{
 			if(SensorManager.getRotationMatrix(m_dcm, null, dAcc, dMag)) {
 				SensorManager.getOrientation(m_dcm, this.mAprAccMag);
+				
 			}
 		}
 	}
@@ -300,7 +302,11 @@ public class InsClass {
 	public void calculaRotVetOrientacao(float[] dRotVet) {
 		//azimuth_anterior = aprRotVet[0]; // Para calculo XYVIEW
 		SensorManager.getRotationMatrixFromVector(m_dcm, dRotVet);
+		//SensorManager.remapCoordinateSystem(m_dcm, SensorManager.AXIS_MINUS_X, SensorManager.AXIS_MINUS_Y, m_dcmposicao);
 		SensorManager.getOrientation(m_dcm, this.mAprRotVet);
+		// Tenho de calcular o offset do azimuth calcuado para que aponte sempre para Y o inicio.
+		
+		
 	}
 	/**
 	 * Actualiza o Azimuth, pitch e roll de acordo com o filtro complementar Acc+Mag+Gyro

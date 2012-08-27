@@ -48,8 +48,9 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	private boolean mComecou;
 	// Coordenadas
 	private double[] posinicialEcef = new double[3];
-	private float[] posEcef = new float[3];
+	private double[] posEcef = new double[3];
 	private double[] poswgs84 = new double[3];
+	private float[] posEnu = new float[3];
 	//private View mapaView;
 	private static TextView gpsInformacao, gpsSatelites, gpsFix;
 	// Mapa
@@ -59,6 +60,8 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	// Instancia do listener 
 	private Gps gpsListener;
 	private TrajectoOverlay trajectoOverlay;
+	// inicialização GPS
+	double latE6,  longE6, altE6; 
 	@Override
 	public void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
@@ -89,6 +92,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		mapView.getOverlays().add(trajectoOverlay);
 		// Instancia do meu listener gps
 		gpsListener = new Gps(getApplicationContext(),this);
+		latE6=0;longE6=0; altE6=0; 
 	}
 	// clicklistener do botão next view (switchviewer)
 	public void onNextClick(View view)
@@ -120,7 +124,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	{
 		if (mComecou)
 		{
-			insListener.stop();
+			//insListener.stop();
 			gpsListener.stopGps();
 			mComecou = false;
 			// altero estado dos botões
@@ -193,8 +197,12 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		if(value.name()==mTipoRetorno.posicao.name())
 		{
 			//actualizaPosicaoView(insListener.getPosicao());
+			posEnu = insListener.getPosicao();
+			// Passo de ENU para ecef
+			posEcef = WGS84.enu2ecef_wgs(posEnu[0], posEnu[1], posEnu[2], latE6, longE6);
 			// Passo o ecef (ENU ´Ponto inicial GPS) do ins para wgs84
-			posEcef = insListener.getPosicao();
+			//posEcef = insListener.getPosicao();
+			
 			poswgs84 = WGS84.ecef2wgs(posEcef[0], posEcef[1], posEcef[2]);
 			//Log.d("INS ECEF:","Latitude: " + posEcef[0] + "Longitude: " + posEcef[1]);
 			//Actualizo o mapa
@@ -234,12 +242,15 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	@Override
 	public void onLocationChanged(Location location) {
 		// Localização inicial para o posicionamento INS
-		double latE6 =  (location.getLatitude() );
-		double longE6 =  (location.getLongitude());
-		double altE6 =  (location.getAltitude());
+		 latE6 =  (location.getLatitude() );
+		 longE6 =  (location.getLongitude());
+		 altE6 =  (location.getAltitude());
 		Log.d("GPS LatLong:","Latitude: " + latE6 + "Longitude: " + longE6);
 		// Recebi localização inicial para o INS entao começo o INS
-		posinicialEcef = WGS84.wgs2ecef(latE6, longE6, altE6);
+		// Passo para ECEF
+		posinicialEcef = WGS84.wgs2ecef(latE6, longE6, altE6); // Não tenho de converter ecef para ENU pois o ENU é 0.0.0
+		
+		
 		Log.d("ECEF:","Latitude: " + posinicialEcef[0] + "Longitude: " + posinicialEcef[1]);
 		insListener.setPosicaoInicial(posinicialEcef);
 		dialog.dismiss();

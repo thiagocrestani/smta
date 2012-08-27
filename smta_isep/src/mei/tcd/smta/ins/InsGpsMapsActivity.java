@@ -48,7 +48,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	private boolean mComecou;
 	// Coordenadas
 	private double[] posinicialEcef = new double[3];
-	private double[] posEcef = new double[3];
+	private float[] posEcef = new float[3];
 	private double[] poswgs84 = new double[3];
 	private float[] posEnu = new float[3];
 	//private View mapaView;
@@ -197,11 +197,11 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		if(value.name()==mTipoRetorno.posicao.name())
 		{
 			//actualizaPosicaoView(insListener.getPosicao());
-			posEnu = insListener.getPosicao();
+			//posEnu = insListener.getPosicao();
 			// Passo de ENU para ecef
-			posEcef = WGS84.enu2ecef_wgs(posEnu[0], posEnu[1], posEnu[2], latE6, longE6);
+			//posEcef = WGS84.enu2ecef_wgs(posEnu[0], posEnu[1], posEnu[2], latE6, longE6);
 			// Passo o ecef (ENU ´Ponto inicial GPS) do ins para wgs84
-			//posEcef = insListener.getPosicao();
+			posEcef = insListener.getPosicao();
 			
 			poswgs84 = WGS84.ecef2wgs(posEcef[0], posEcef[1], posEcef[2]);
 			//Log.d("INS ECEF:","Latitude: " + posEcef[0] + "Longitude: " + posEcef[1]);

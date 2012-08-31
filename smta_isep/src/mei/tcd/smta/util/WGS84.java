@@ -157,6 +157,34 @@ public class WGS84 {
 
 		return XYZenu;
 	}
+	public static final double[] ecef2enu2(double ecefVector[], double latitude,
+			double longitude) {
+		double[] enuVector = new double[3];
+		double temp[][] = new double[3][3];
+		double slat = Math.sin(latitude);
+		double clat = Math.cos(latitude);
+		double slon = Math.sin(longitude);
+		double clon = Math.cos(longitude);
 
+		temp[0][0] = -slon;
+		temp[0][1] = clon;
+		temp[0][2] = 0.0;
+
+		temp[1][0] = -clon * slat;
+		temp[1][1] = -slon * slat;
+		temp[1][2] = clat;
+
+		temp[2][0] = clon * clat;
+		temp[2][1] = slon * clat;
+		temp[2][2] = slat;
+
+		for (int j = 0; j < 3; ++j) {
+			enuVector[j] = 0.0;
+			for (int i = 0; i < 3; i++) {
+				enuVector[j] += temp[j][i] * ecefVector[i];
+			}
+		}
+		return enuVector;
+	}
 }
 

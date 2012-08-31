@@ -52,9 +52,10 @@ public class InsClass {
 	private float[] m_dcm = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
 	private float[] m_dcmposicao = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
 	private float[] mAprAccMag=new float[3]; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de Acelerometro e magnetometro
-	private float[] mAprGyro=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
-	private float[] mAprRotVet=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
-	private float[] mAprFusao=new float[]{0,0,0};; // Angulos Euler (Azimuth-yaw, Pitch, Roll) da fusão (Filtro complementar)
+	private float[] mAprGyro=new float[]{0,0,0}; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
+	private float[] mAprRotVet=new float[]{0,0,0}; // Angulos Euler (Azimuth-yaw, Pitch, Roll) de giroscopio
+	private float[] mAprFusao=new float[]{0,0,0}; // Angulos Euler (Azimuth-yaw, Pitch, Roll) da fusão (Filtro complementar)
+	private float[] mAccLinear=new float[]{0,0,0};
 		
 	public boolean jaCalculouThreshold;
 	public boolean jaAlinhou;
@@ -98,9 +99,9 @@ public class InsClass {
 	 * 
 	 * @param dcm matrix resultante do método getRotationMatrix()
 	 */
-	public void set_dcm(float[] dcm) {
+	public void set_dcm(float[] _m_dcm) {
 		for (int i=0;i<9;i++) {
-			m_dcm[i] = dcm[i];
+			m_dcm[i] = _m_dcm[i];
 		}
 	}
 	
@@ -112,9 +113,9 @@ public class InsClass {
 	 * 
 	 * @param dcm  Matriz rotação
 	 */
-	public void set_dcmGyro(float[] dcm) {
+	public void set_dcmGyro(float[] _m_dcmGyro) {
 		for (int i=0;i<9;i++) {
-			m_dcmGyro.set(i,dcm[i]);
+			m_dcmGyro.set(i,_m_dcmGyro[i]);
 		}
 	}
 	/**
@@ -196,7 +197,10 @@ public class InsClass {
 			m_tempdcm.set(i,m_dcm[i]);
 		//m_temp = m_temp + m_tempdcm * gravidade
 		CommonOps.multAddTransA(m_tempdcm, mGravidade, m_temp);
-		return new float[]{(float) m_temp.get(0),(float) m_temp.get(1),(float) m_temp.get(2)};
+		for(int i=0;i<3;i++)
+			mAccLinear[i] = (float)m_temp.get(i);
+		//return new float[]{(float) m_temp.get(0),(float) m_temp.get(1),(float) m_temp.get(2)};
+			return mAccLinear;
 	}
 	/**
 	 * Calculo da velocidade.Integração numerica regra dos trapézios não funciona pois os intervalos de tempo não são constantes....
@@ -211,11 +215,11 @@ public class InsClass {
 		mAceleracao.set(1,dados[1]); //y - North
 		mAceleracao.set(2,dados[2]); //z - Up
 		// velocidade = velocidade + dt*aceleracao
-		CommonOps.addEquals(mVelocidade, dt,mAceleracao);
+		//CommonOps.addEquals(mVelocidade, dt,mAceleracao);
 		// Tenho de passar imediatamente a aceleração para ENU global referencial e só altera direcção de acelerelação variar
 //		for (int i = 0;i<9;i++)
 //			m_tempdcm.set(i,m_dcm[i]);
-//		CommonOps.multAddTransA(dt,m_tempdcm,aceleracao,velocidade);
+		CommonOps.multAdd(dt,m_tempdcm,mAceleracao,mVelocidade);
 		
 		
 	}
@@ -253,9 +257,9 @@ public class InsClass {
 		for (int i = 0;i<9;i++)
 			m_tempdcm.set(i,m_dcm[i]);
 		
-		CommonOps.multAddTransA(dt,m_tempdcm,mVelocidade,mPosicao);
+		//CommonOps.multAdd(dt,m_tempdcm,mVelocidade,mPosicao);
 		//CommonOps.addEquals(posicao,posicaoInicialGPS);
-		//CommonOps.addEquals(posicao, dt, velocidade);
+		CommonOps.addEquals(mPosicao, dt, mVelocidade);
 		
 	}
 	/**
@@ -625,12 +629,12 @@ public class InsClass {
 		private int tempIndice = 0;
 		
 		// Variavel claculada pela variancia de valores
-		public float thresholdAccelX =0;
-		public float thresholdAccelY =0;
-		public float thresholdAccelZ =0;
-		public float thresholdAccelNewX =0;
-		public float thresholdAccelNewY =0;
-		public float thresholdAccelNewZ =0;
+		public float mThresholdAccelX =0;
+		public float mThresholdAccelY =0;
+		public float mThresholdAccelZ =0;
+		public float mThresholdAccelNewX =0;
+		public float mThresholdAccelNewY =0;
+		public float mThresholdAccelNewZ =0;
 		public boolean velPositivaY = true;
 
 		// Limpar arrays
@@ -661,9 +665,9 @@ public class InsClass {
 				if(!jaCalculouThreshold)
 				{
 					//this.thresholdAccel = opsins.getVariancia(tempMagAccel);
-					this.thresholdAccelX = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelX));
-					this.thresholdAccelY = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelY));
-					this.thresholdAccelZ = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelZ));
+					this.mThresholdAccelX = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelX));
+					this.mThresholdAccelY = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelY));
+					this.mThresholdAccelZ = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelZ));
 					jaCalculouThreshold = true;
 				}
 				else
@@ -677,9 +681,9 @@ public class InsClass {
 						velPositivaY = false;
 					}
 					//this.thresholdAccelNew = opsins.getVariancia(tempMagAccel);
-					this.thresholdAccelNewX = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelX));
-					this.thresholdAccelNewY = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelY));
-					this.thresholdAccelNewZ = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelZ));
+					this.mThresholdAccelNewX = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelX));
+					this.mThresholdAccelNewY = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelY));
+					this.mThresholdAccelNewZ = opsins.getDesvioPadrao(opsins.getVariancia(tempAccelZ));
 					
 				}
 				this.limparArrays();

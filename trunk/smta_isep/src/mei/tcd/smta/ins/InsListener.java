@@ -30,7 +30,7 @@ public class InsListener implements SensorEventListener {
 	private int mControlDesaceleraThreshold = 3; //Número de registos a serem descartados após primeira desaceleração. (Valores negativos)
 	private boolean mEfectuaCalibracao;// se a calibração efectuada no sensor de aceleração é para ser usada ou não (preferecias)
 	private int mSemaforo; // devolve um valor a sinalizar se está em aceleração, parado ou a desacelerar
-	private float velocidade; // Velocidade em Km ((float) ins.getVelocidadeTotal() / MSTOKM;) 
+	private float mVelocidade; // Velocidade em Km ((float) ins.getVelocidadeTotal() / MSTOKM;) 
 	// dadosAcc, dadosGyro,dadosMag,dadosRotVet - Dados dos sensores em arrays float
 	private float[] mCalibVetor = new float[3]; // Vai guardar os valores obtidos da calibração do acelerometro e usa-los na obtenção de valores Acc melhorados.
 	private float[] mDadosAcc = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
@@ -64,7 +64,18 @@ public class InsListener implements SensorEventListener {
 	 * 
 	 */
 	public float getVelocidade(){
-		return velocidade;
+		return mVelocidade;
+		
+	}
+	/**
+	 * Altera o valor da velocidade.
+	 * 
+	 * 
+	 * @param velocidade em km
+	 * 
+	 */
+	public void setVelocidade(float _velocidade){
+		 mVelocidade = _velocidade;
 		
 	}
 	/**
@@ -72,7 +83,7 @@ public class InsListener implements SensorEventListener {
 	 * 
 	 */
 	public void setVelocidadeZero(){
-		velocidade = 0.0f;
+		mVelocidade = 0.0f;
 		
 	}
 	/**
@@ -283,14 +294,14 @@ public class InsListener implements SensorEventListener {
 					if (tipoEvento == Sensor.TYPE_ACCELEROMETER) {
 						// dadosMinhaAccLin = ins.getAccLinear(dadosAcc); 
 						//Apenas para Y
-						if ((mDadosMinhaAccLin[1]) > (mCoeficienteThreshold + ins.stopDetection.thresholdAccelY)) {
+						if ((mDadosMinhaAccLin[1]) > (mCoeficienteThreshold + ins.stopDetection.mThresholdAccelY)) {
 							this.setSemaforo(3);// a acelerar
 							
 							ins.actualiza_Velocidade(mDadosMinhaAccLin, dt);// Actualiza a velocidade com aceleração linear
 							mContadorDes = 0;
 							// TODO: Corrigir o facto de depois da aceleração feita,
 							// este desacelerar bruscamente.
-						} else if ((mDadosMinhaAccLin[1]) < (ins.stopDetection.thresholdAccelY - mCoeficienteThreshold)
+						} else if ((mDadosMinhaAccLin[1]) < (ins.stopDetection.mThresholdAccelY - mCoeficienteThreshold)
 								&& mControlDesacelera) {
 							if (mContadorDes > mControlDesaceleraThreshold) {
 								this.setSemaforo(2);// a abrandar
@@ -303,7 +314,8 @@ public class InsListener implements SensorEventListener {
 						}
 						// Actualizo a minha posição independentemente de estar ou não a ganhar velocidade
 						ins.actualiza_Posicao(dt); // Actualiza a posicao
-						velocidade = (float) ins.getVelocidadeTotal() / MSTOKM; // A velocidade total apenas mede Y + Z quando telefone na diagonal
+						this.setVelocidade((float) ins.getVelocidadeTotal() / MSTOKM);// A velocidade total apenas mede Y + Z quando telefone na diagonal
+						
 						listener.onInsEvent(tipoRetorno.velocidade);
 						
 

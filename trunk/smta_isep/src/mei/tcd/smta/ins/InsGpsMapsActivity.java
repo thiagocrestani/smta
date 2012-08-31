@@ -48,6 +48,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	private boolean mComecou;
 	// Coordenadas
 	private double[] posinicialEcef = new double[3];
+	private double[] posinicialENU = new double[3];
 	private float[] posEcef = new float[3];
 	private double[] poswgs84 = new double[3];
 	private float[] posEnu = new float[3];
@@ -245,13 +246,15 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		 latE6 =  (location.getLatitude() );
 		 longE6 =  (location.getLongitude());
 		 altE6 =  (location.getAltitude());
-		Log.d("GPS LatLong:","Latitude: " + latE6 + "Longitude: " + longE6);
+		//Log.d("GPS LatLong:","Latitude: " + latE6 + "Longitude: " + longE6);
 		// Recebi localização inicial para o INS entao começo o INS
 		// Passo para ECEF
 		posinicialEcef = WGS84.wgs2ecef(latE6, longE6, altE6); // Não tenho de converter ecef para ENU pois o ENU é 0.0.0
 		
-		
-		Log.d("ECEF:","Latitude: " + posinicialEcef[0] + "Longitude: " + posinicialEcef[1]);
+		//posinicialENU = WGS84.ecef2enu(latE6, longE6, new double[]{0,0,0}, posinicialEcef);
+		Log.d("ECEF:","ENU1" + posinicialEcef[0] + "ENU2: " + posinicialEcef[1] + "ENU23: " + posinicialEcef[2] );
+		//posinicialENU = WGS84.ecef2enu2(posinicialEcef,latE6,longE6 );
+		//Log.d("ENU2:","ENU1" + posinicialENU[0] + "ENU2: " + posinicialENU[1] + "ENU23: " + posinicialENU[2] );
 		insListener.setPosicaoInicial(posinicialEcef);
 		dialog.dismiss();
 		dialog.setCancelable(false);

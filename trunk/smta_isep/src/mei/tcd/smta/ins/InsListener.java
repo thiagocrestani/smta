@@ -5,6 +5,7 @@ import java.util.TimerTask;
 
 import mei.tcd.smta.R;
 import mei.tcd.smta.util.Ops;
+import mei.tcd.smta.util.SensorWriterSmta;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -23,23 +24,33 @@ public class InsListener implements SensorEventListener {
 	private SharedPreferences prefs;// Gestor de preferencias
 	private Resources resources;// Aceder aos resource (Strings, etc...)
 	private boolean mInicioIns;// Vai informar se o INS já começõu ou não
+	//Preferencias
 	private int mRateSensor;// Frequencia dos sensores definida nas preferencias e sugeridas nos listeners dos sensores.
 	private String mTipoOrientacao;// Tipo orientação definida nas preferencias e vai definir se Acc+Mag ou RotVet ou Acc+Mag+Gyro Fusão
 	private float mCoeficienteThreshold;// Coeficiente a somar ao threshold calculado para detecção de movimento. Pode ser definido em prefs.
 	private boolean mControlDesacelera;// Experimental para testar o controlo de desaceleração instatanea, logo após aceleração. Tem tambem de se definir um número de registos posteriores à desaceleração.
 	private int mControlDesaceleraThreshold = 3; //Número de registos a serem descartados após primeira desaceleração. (Valores negativos)
 	private boolean mEfectuaCalibracao;// se a calibração efectuada no sensor de aceleração é para ser usada ou não (preferecias)
+	private int filtro; //1- High pass, 2- Low pass, 3- Nenhum
+	private float filtroAlpha;
+	//---------------------------
 	private int mSemaforo; // devolve um valor a sinalizar se está em aceleração, parado ou a desacelerar
 	private float mVelocidade; // Velocidade em Km ((float) ins.getVelocidadeTotal() / MSTOKM;) 
 	// dadosAcc, dadosGyro,dadosMag,dadosRotVet - Dados dos sensores em arrays float
 	private float[] mCalibVetor = new float[3]; // Vai guardar os valores obtidos da calibração do acelerometro e usa-los na obtenção de valores Acc melhorados.
 	private float[] mDadosAcc = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
+	private float[] mDadosAccFiltro = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
+	private float[] mDadosAccLinearFiltro = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
 	private float[] mDadosGyro = new float[3]; // Vetor rotaçao obtida do Giroscopio  nos 3 eixos (X, Y e Z)
 	private float[] mDadosMag = new float[3]; // Vetor Micro Teslas obtida do magnetometro  nos 3 eixos (X, Y e Z)
 	private float[] mDadosMinhaAccLin = new float[3]; // Acelerometro linear retirando a gravidade com DCM na classe InsClass
+	private float[] mDadosLinear = new float[3]; // Acelerometro linear do android
+	private float[] mDadosMinhaAccLinFiltro = new float[3]; // Acelerometro linear retirando a gravidade com DCM na classe InsClass
 	private float[] mDadosRotVet = new float[3]; // Vetor rotação obtido do sensor virtual Rotation Vector.
 	private float[] mAziPitRol = new float[3]; // Azimuth pith e roll de retorno
+	private float[] globalCoords = new float[3]; //Vetor temporario para coordenadas globais
 	private long eventTime = 0;// eventTime - Tempo em nanosegundos quando o evento aconteceu
+	private boolean mRecord,mStartRecord=false;
 	// anteriorEventTimeAcc, anteriorEventTimeGyro,anteriorEventTimeMag,anteriorEventTimeRotVet - Tempo em nanosegundos do evento anterior dos três sensores
 	private long anteriorEventTimeAcc = 0, anteriorEventTimeGyro = 0,anteriorEventTimeMag = 0, anteriorEventTimeRotVet = 0;
 	private int mContadorDes = 0;// contadorDes - Para ser usado em conjunto com o controlo de desaceleração
@@ -49,13 +60,27 @@ public class InsListener implements SensorEventListener {
 	// Com os handler podemos enviar e processar mensagens no message Queue (fila de mensagens) na thread
 	private Handler startHandler = new Handler();  // Obriga a começar quando 10s para certificar que a orientação está fixa e que o threshold da aceleração foi calculada
 	private Handler posicaoHandler = new Handler();  // Corre un runnable para enviar a posição de X em X tempo definido em posicaoTimer
-	
+
 	private Timer posicaoTimer = new Timer();//vou colocar um timer para posicionar na view de x em x tempo
 	// Interface para comunicar com quem instancia e enviar os retornos quando prontos.
 	private OnInsChanged<tipoRetorno> listener;
+	// Debug----------------------
+	private SensorWriterSmta acelerometro = new SensorWriterSmta();
+	private SensorWriterSmta acelerometroGlobais = new SensorWriterSmta();// Aceleração  coordenadas globais
+	private SensorWriterSmta acelerometroFiltro = new SensorWriterSmta();
+	private SensorWriterSmta AccMeuLinear = new SensorWriterSmta();
+	private SensorWriterSmta AccMeuLinearGlobais = new SensorWriterSmta();// Aceleração linear coordenadas globais
+	private SensorWriterSmta AccMeuLinearFiltro = new SensorWriterSmta();
+	private SensorWriterSmta AccLinear = new SensorWriterSmta();
+	private SensorWriterSmta AccLinearGlobais = new SensorWriterSmta();
+	private SensorWriterSmta AccLinearFiltro = new SensorWriterSmta();
+	private SensorWriterSmta magnetometro = new SensorWriterSmta();
+	private SensorWriterSmta giroscopio = new SensorWriterSmta();
+
 	// Variaveis de reotrnos
-		
+
 	// Getters e setters
+
 	/**
 	 * Retorna a velocidade calculada da seguinte forma:
 	 * Velocidade em Km ((float) ins.getVelocidadeTotal() / MSTOKM;) 
@@ -65,7 +90,7 @@ public class InsListener implements SensorEventListener {
 	 */
 	public float getVelocidade(){
 		return mVelocidade;
-		
+
 	}
 	/**
 	 * Altera o valor da velocidade.
@@ -75,8 +100,8 @@ public class InsListener implements SensorEventListener {
 	 * 
 	 */
 	public void setVelocidade(float _velocidade){
-		 mVelocidade = _velocidade;
-		
+		mVelocidade = _velocidade;
+
 	}
 	/**
 	 * Coloca a velocidade em Zero, fazendo com que a posição não aumente.
@@ -84,7 +109,7 @@ public class InsListener implements SensorEventListener {
 	 */
 	public void setVelocidadeZero(){
 		mVelocidade = 0.0f;
-		
+
 	}
 	/**
 	 * Retorna o semaforo sobre o modo de aceleração.
@@ -95,7 +120,7 @@ public class InsListener implements SensorEventListener {
 	 */
 	public int getSemaforo(){
 		return mSemaforo;
-		
+
 	}
 	/**
 	 * Coloca o valor do semaforo conforme a aceleração.
@@ -104,7 +129,7 @@ public class InsListener implements SensorEventListener {
 	 */
 	private void setSemaforo(int _semaforo){
 		mSemaforo = _semaforo;
-		
+
 	}
 	/**
 	 * Retorna o Azimuth, pitch e roll. 
@@ -112,12 +137,12 @@ public class InsListener implements SensorEventListener {
 	 * Pitch - Rotação sobre o eixo do X
 	 * Roll - Rotação sobre o eixo do Y
 	 *  
-	 * @return AziPitRoll array float[] valor[0] - Azimute, Valor[1] - Pitch, Valor[2] - Roll
+	 * @return AziPitRoll array float[] valor[0] - Azimute, Valor[1] - Pitch, Valor[2] - Roll (Valores em radianos)
 	 * 
 	 */
 	public float[] getAziPitRoll(){
 		return mAziPitRol;
-		
+
 	}
 	/**
 	 * Define o valor Azimuth, pitch e roll. 
@@ -131,7 +156,7 @@ public class InsListener implements SensorEventListener {
 	private void setAziPitRoll(float[] _AziPitRol){
 		mAziPitRol = _AziPitRol;
 		listener.onInsEvent(tipoRetorno.orientacao); //Se já tiver o Azimuth, o pitch e rool então envio informação pelo callback
-		
+
 	}
 	/**
 	 * Verifica se o sistema já inicializou aquando do startHandler após 10 segundos.
@@ -170,7 +195,25 @@ public class InsListener implements SensorEventListener {
 	public void setPosicaoInicial(double[] _posicaoInicial){
 		ins.setPosicaoInicial(_posicaoInicial);
 	}
-	
+	/**
+	 * Vai definir se é para efectuar gravação em ficheiro ou não
+	 * 
+	 * @param _posicaoInicial vetor array double[] ECEF (Earth Centered, Earth Fixed)
+	 *  
+	 */
+	public void setRecord(boolean _record){
+		mRecord = _record;
+	}
+	/**
+	 * Vai iniciar a gravação
+	 * 
+	 * @param _posicaoInicial vetor array double[] ECEF (Earth Centered, Earth Fixed)
+	 *  
+	 */
+	public void setStartRec(boolean _startRec){
+		mStartRecord = _startRec;
+	}
+
 	/**
 	 * Método contrutor.
 	 * 
@@ -191,7 +234,16 @@ public class InsListener implements SensorEventListener {
 		mCalibVetor[0] = 0;
 		mCalibVetor[1] = 0;
 		mCalibVetor[2] = 0;
-		
+		mDadosAcc[0] = 0;
+		mDadosAcc[1] = 0;
+		mDadosAcc[2] = 0;
+		mDadosLinear[0] = 0;
+		mDadosLinear[1] = 0;
+		mDadosLinear[2] = 0;
+		mDadosAccFiltro[0] = 0;
+		mDadosAccFiltro[1] = 0;
+		mDadosAccFiltro[2] = 0;
+
 	}
 	/**
 	 * Inicializa as definições para os sensores. Carrega preferencias e timers para 
@@ -202,16 +254,32 @@ public class InsListener implements SensorEventListener {
 	 */
 	public void start() {
 		carregaDefinicoes(); // Para carregar prefs e inicializar os listeners dos sensores
-    }
+
+	}
 	/**
 	 * Retira os listeners dos sensores e coloca o inicioIns=false.
 	 * 
 	 */
 	public void stop(){
-		sensorManager.unregisterListener(this); // Retiro os listeners dos sensores
+		if(sensorManager!=null)
+			sensorManager.unregisterListener(this); // Retiro os listeners dos sensores
 		//sensorWriter.fechaFicheiro();
 		this.setInicio(false);// Coloco o inicio igual a false.
-		
+		if(acelerometro.ficheiro!=null && acelerometroFiltro.ficheiro!=null && AccMeuLinear.ficheiro!=null && magnetometro.ficheiro!=null && giroscopio.ficheiro!=null){
+			acelerometro.fechaFicheiro();
+			acelerometroFiltro.fechaFicheiro();
+			AccMeuLinear.fechaFicheiro();
+			AccLinear.fechaFicheiro();
+			AccLinearGlobais.fechaFicheiro();
+			AccMeuLinearFiltro.fechaFicheiro();
+			AccLinearFiltro.fechaFicheiro();
+			acelerometroGlobais.fechaFicheiro();
+			//acelerometroFiltroGlobais.fechaFicheiro();
+			AccMeuLinearGlobais.fechaFicheiro();
+			//AccMeuLinearFiltroGlobais.fechaFicheiro();
+			magnetometro.fechaFicheiro();
+			giroscopio.fechaFicheiro();
+		}
 	}
 	/**
 	 * Callback chamado pela thread que registou o callback.
@@ -241,12 +309,32 @@ public class InsListener implements SensorEventListener {
 		float dt = 0; // Intervalo de tempo entre o evento actual e o anterior (posterior passagem para segundos)
 		switch (tipoEvento) {
 		case Sensor.TYPE_ACCELEROMETER:
+			// High Pass
+			if(filtro==1){
+				mDadosAccFiltro[0] = ins.highPass(event.values[0], mDadosAcc[0], mDadosAccFiltro[0],filtroAlpha);
+				mDadosAccFiltro[1] = ins.highPass(event.values[1], mDadosAcc[1], mDadosAccFiltro[1],filtroAlpha);
+				mDadosAccFiltro[2] = ins.highPass(event.values[2], mDadosAcc[2], mDadosAccFiltro[2],filtroAlpha);
+			}
+			// Low Pass
+			else if(filtro==2){
+				mDadosAccFiltro[0] = ins.lowPass(event.values[0], mDadosAccFiltro[0],filtroAlpha);
+				mDadosAccFiltro[1] = ins.lowPass(event.values[1], mDadosAccFiltro[1],filtroAlpha);
+				mDadosAccFiltro[2] = ins.lowPass(event.values[2], mDadosAccFiltro[2],filtroAlpha);
+			}
 			mDadosAcc[0] = event.values[0] + mCalibVetor[0];
 			mDadosAcc[1] = event.values[1] + mCalibVetor[1];
 			mDadosAcc[2] = event.values[2] + mCalibVetor[2];
+
 			if (anteriorEventTimeAcc != 0)
 				dt = (eventTime - anteriorEventTimeAcc) * NS2S;
 			anteriorEventTimeAcc = eventTime;
+			if(mInicioIns && mStartRecord){
+				globalCoords = ins.getWorldVector(mDadosAcc);
+				acelerometro.escreveIsto(eventTime + "," + dt + "," + mDadosAcc[0] + "," + mDadosAcc[1] + "," + mDadosAcc[2] + "\n");
+				acelerometroGlobais.escreveIsto(eventTime + "," + dt + "," + globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2] + "\n");
+				acelerometroFiltro.escreveIsto(eventTime + "," + dt + "," + mDadosAccFiltro[0] + "," + mDadosAccFiltro[1] + "," + mDadosAccFiltro[2]+ ","+ filtro + "," + filtroAlpha + "\n");
+				
+			}
 			break;
 		case Sensor.TYPE_GYROSCOPE:
 			mDadosGyro[0] = event.values[0];
@@ -255,6 +343,9 @@ public class InsListener implements SensorEventListener {
 			if (anteriorEventTimeGyro != 0)
 				dt = (eventTime - anteriorEventTimeGyro) * NS2S;
 			anteriorEventTimeGyro = eventTime;
+			if(mInicioIns && mStartRecord){
+				giroscopio.escreveIsto(eventTime + "," + dt + "," + mDadosGyro[0] + "," + mDadosGyro[1] + "," + mDadosGyro[2]+ "\n");
+			}
 			break;
 		case Sensor.TYPE_MAGNETIC_FIELD:
 			mDadosMag[0] = event.values[0];
@@ -263,6 +354,9 @@ public class InsListener implements SensorEventListener {
 			if (anteriorEventTimeMag != 0)
 				dt = (eventTime - anteriorEventTimeMag) * NS2S;
 			anteriorEventTimeMag = eventTime;
+			if(mInicioIns && mStartRecord){
+				magnetometro.escreveIsto(eventTime + "," + dt + "," + mDadosMag[0] + "," + mDadosMag[1] + "," + mDadosMag[2]+ "\n");
+			}
 			break;
 		case Sensor.TYPE_ROTATION_VECTOR:
 			mDadosRotVet[0] = event.values[0];
@@ -272,6 +366,33 @@ public class InsListener implements SensorEventListener {
 				dt = (eventTime - anteriorEventTimeRotVet) * NS2S;
 			anteriorEventTimeRotVet = eventTime;
 			break;
+
+		case Sensor.TYPE_LINEAR_ACCELERATION:
+			// High Pass
+			if(filtro==1){
+				mDadosAccLinearFiltro[0] = ins.highPass(event.values[0], mDadosLinear[0], mDadosAccLinearFiltro[0],filtroAlpha);
+				mDadosAccLinearFiltro[1] = ins.highPass(event.values[1], mDadosLinear[1], mDadosAccLinearFiltro[1],filtroAlpha);
+				mDadosAccLinearFiltro[2] = ins.highPass(event.values[2], mDadosLinear[2], mDadosAccLinearFiltro[2],filtroAlpha);
+			}
+			// Low Pass
+			else if(filtro==2){
+				mDadosAccLinearFiltro[0] = ins.lowPass(event.values[0], mDadosAccLinearFiltro[0],filtroAlpha);
+				mDadosAccLinearFiltro[1] = ins.lowPass(event.values[1], mDadosAccLinearFiltro[1],filtroAlpha);
+				mDadosAccLinearFiltro[2] = ins.lowPass(event.values[2], mDadosAccLinearFiltro[2],filtroAlpha);
+			}
+			mDadosLinear[0] = event.values[0];
+			mDadosLinear[1] = event.values[1];
+			mDadosLinear[2] = event.values[2];
+			if (anteriorEventTimeRotVet != 0)
+				dt = (eventTime - anteriorEventTimeRotVet) * NS2S;
+			anteriorEventTimeRotVet = eventTime;
+			if(mInicioIns && mStartRecord){
+				globalCoords = ins.getWorldVector(mDadosLinear);
+				AccLinearGlobais.escreveIsto(eventTime + "," + dt + "," + globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2]+ "\n");
+				AccLinear.escreveIsto(eventTime + "," + dt + "," + mDadosLinear[0] + "," + mDadosLinear[1] + "," + mDadosLinear[2]+ "\n");
+				AccLinearFiltro.escreveIsto(eventTime + "," + dt + "," + mDadosAccLinearFiltro[0] + "," + mDadosAccLinearFiltro[1] + "," + mDadosAccLinearFiltro[2]+ "\n");
+			}
+			break;
 		}
 		// ----------------------------------- Velocidade -----------------------------------------
 		// Temos de certificar-nos que o dispositivo apanhou uma orientação +- estavel para retirar a gravidade da aceleração
@@ -279,10 +400,19 @@ public class InsListener implements SensorEventListener {
 		if(operacoes.getMagnitude(ins.getAprAccMag())!=0 || operacoes.getMagnitude(ins.getAprFusao())!=0 || operacoes.getMagnitude(ins.getAprRotVet())!=0 && mInicioIns)
 		{
 			if (tipoEvento == Sensor.TYPE_ACCELEROMETER) {
+
+
 				// Para a frente +
 				// Para tras -
 				// Calculo a minha velocidade linear baseada na orientação e acelerometro
 				mDadosMinhaAccLin = ins.getAccLinear(mDadosAcc);
+				if(mStartRecord){
+					globalCoords = ins.getWorldVector(mDadosMinhaAccLin);
+					AccMeuLinear.escreveIsto(eventTime + "," + dt + "," + mDadosMinhaAccLin[0] + "," + mDadosMinhaAccLin[1] + "," + mDadosMinhaAccLin[2]+ "\n");
+					AccMeuLinearGlobais.escreveIsto(eventTime + "," + dt + "," + globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2]+ "\n");
+					
+				}
+
 				// Calculo a minha média de amostras iniciais para usar em conjunto
 				// com o valor de threshold
 				ins.stopDetection.adicionaAcc(mDadosMinhaAccLin);
@@ -296,7 +426,7 @@ public class InsListener implements SensorEventListener {
 						//Apenas para Y
 						if ((mDadosMinhaAccLin[1]) > (mCoeficienteThreshold + ins.stopDetection.mThresholdAccelY)) {
 							this.setSemaforo(3);// a acelerar
-							
+
 							ins.actualiza_Velocidade(mDadosMinhaAccLin, dt);// Actualiza a velocidade com aceleração linear
 							mContadorDes = 0;
 							// TODO: Corrigir o facto de depois da aceleração feita,
@@ -313,18 +443,20 @@ public class InsListener implements SensorEventListener {
 							this.setSemaforo(1);// Parado
 						}
 						// Actualizo a minha posição independentemente de estar ou não a ganhar velocidade
+						//ins.actualiza_Velocidade(new float[]{0,0,0}, dt);
 						ins.actualiza_Posicao(dt); // Actualiza a posicao
 						this.setVelocidade((float) ins.getVelocidadeTotal() / MSTOKM);// A velocidade total apenas mede Y + Z quando telefone na diagonal
-						
+
 						listener.onInsEvent(tipoRetorno.velocidade);
-						
+
 
 					}
 				}
 			}
 			if (tipoEvento==Sensor.TYPE_GYROSCOPE) { //Actualizar velocidade e posicao
-				ins.actualiza_VelocidadeGyro(mDadosGyro, dt);
-				ins.actualiza_PosicaoGyro(mDadosGyro, dt);
+
+				//ins.actualiza_VelocidadeGyro(mDadosGyro, dt);
+				//ins.actualiza_PosicaoGyro(mDadosGyro, dt);
 			}
 		}
 
@@ -332,25 +464,27 @@ public class InsListener implements SensorEventListener {
 		if (mTipoOrientacao.equals(resources.getString(R.string.AccMag))) {
 			ins.calculaAccMagOrientacao(mDadosMag, mDadosAcc);
 			this.setAziPitRoll(ins.getAprAccMag());
-			
+
 		} else if (mTipoOrientacao.equals(resources
 				.getString(R.string.RotationVector))) {
-			ins.calculaRotVetOrientacao(mDadosRotVet);
-			this.setAziPitRoll(ins.getAprRotVet());
-			
+			if (tipoEvento==Sensor.TYPE_ROTATION_VECTOR) { 
+				ins.calculaRotVetOrientacao(mDadosRotVet);
+				this.setAziPitRoll(ins.getAprRotVet());
+			}
+
 		} else if (mTipoOrientacao.equals(resources.getString(R.string.Fusao))) {
 			if (tipoEvento == Sensor.TYPE_ACCELEROMETER) {
 				ins.calculaAccMagOrientacao(mDadosMag, mDadosAcc);
-			
+
 			}
 			if (tipoEvento == Sensor.TYPE_GYROSCOPE) {
 				ins.calculaFusaoOrientacao(mDadosGyro, dt);
 			}
 			this.setAziPitRoll(ins.getAprFusao());
-			
-			
+
+
 		}
-		
+
 
 	}
 
@@ -360,14 +494,14 @@ public class InsListener implements SensorEventListener {
 
 	}
 
-	
+
 	/**
 	 * Determinar quais os sensores que deverão estar activos. Respeitando o ciclo de vida de uma activadade no android, 
 	 * corre sempre que o estado da actividade entra em onResume()
 	 * Carregar definições das prefs e efectar os posts dos handlers.
 	 */
 	private void carregaDefinicoes() {
-		
+
 		// Limpa registers anteriores, apesar de a mudança ser efectuada na
 		// configuração e esta ser renovada no onPause e onResume
 		this.setInicio(false);
@@ -380,6 +514,8 @@ public class InsListener implements SensorEventListener {
 		mControlDesaceleraThreshold = Integer.parseInt(prefs.getString(
 				"controlaParagemContador", "3"));
 		mEfectuaCalibracao = prefs.getBoolean("efectuaCalibracao", false);
+		filtro = Integer.parseInt(prefs.getString("filtro", "3"));
+		filtroAlpha = Float.parseFloat(prefs.getString("thresholdFiltro", "0.3f"));
 		// Se efectua calibração, então carrego o vetor calibração dos valores calibrados para aproximação
 		if(mEfectuaCalibracao && prefs.contains("AccCalibX"))
 		{
@@ -389,6 +525,12 @@ public class InsListener implements SensorEventListener {
 			mCalibVetor[2] = prefs.getFloat("AccCalibZ", 0.0f);
 
 		}
+		//---------------------			// Estes sao para retirar é so para gravar valores quando escolho este tipo de orientação e não faz sentido estar aqui.
+		//TODO Retirar este quando final
+		sensorManager.registerListener(this,
+				sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+				mRateSensor);
+		//--------------------------------------------------------------------
 		// O acelerometro fica sempre activo
 		sensorManager.registerListener(this,
 				sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
@@ -397,12 +539,26 @@ public class InsListener implements SensorEventListener {
 			sensorManager.registerListener(this,
 					sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
 					mRateSensor);
+			// Este é para retirar é so para gravar valores quando escolho este tipo de orientação e não faz sentido estar aqui.
+			sensorManager.registerListener(this,
+					sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+					mRateSensor);
 		} else if (mTipoOrientacao.equals(resources
 				.getString(R.string.RotationVector))) {
 			sensorManager
 			.registerListener(this, sensorManager
 					.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
 					mRateSensor);
+			//TODO Retirar estes seguintes
+			//---------------------			// Estes sao para retirar é so para gravar valores quando escolho este tipo de orientação e não faz sentido estar aqui.
+			sensorManager.registerListener(this,
+					sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+					mRateSensor);
+
+			sensorManager.registerListener(this,
+					sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+					mRateSensor);
+			//--------------------------------------------------------------------			
 		} else if (mTipoOrientacao.equals(resources.getString(R.string.Fusao))) {
 			sensorManager.registerListener(this,
 					sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
@@ -417,10 +573,25 @@ public class InsListener implements SensorEventListener {
 		startHandler.postDelayed(new Runnable() 
 		{ 
 			public void run() { 
+				if(mRecord) //se for para gravar entao criar ficheiros
+				{
+					acelerometro.criaFicheiro("smta_isep","acc");
+					acelerometroGlobais.criaFicheiro("smta_isep","accglobais");
+					acelerometroFiltro.criaFicheiro("smta_isep","accfiltro");
+					AccLinear.criaFicheiro("smta_isep","acclinear");
+					AccLinearGlobais.criaFicheiro("smta_isep","acclinearglobais");
+					AccLinearFiltro.criaFicheiro("smta_isep","acclinearfiltro");
+					AccMeuLinearFiltro.criaFicheiro("smta_isep","accmeulinearfiltro");
+					AccMeuLinear.criaFicheiro("smta_isep","accmeulinear");
+					AccMeuLinearGlobais.criaFicheiro("smta_isep","accmeulinearglobais");
+					magnetometro.criaFicheiro("smta_isep","mag");
+					giroscopio.criaFicheiro("smta_isep","gyr");
+										
+				}
 				setInicio(true);
 				// Para verificar que está pronto
 				listener.onInsEvent(tipoRetorno.inicializar);
-				
+
 			} 
 		}, 10000);
 		// Actualizo a view de posição
@@ -431,11 +602,11 @@ public class InsListener implements SensorEventListener {
 				{ 
 					public void run() { 
 						listener.onInsEvent(tipoRetorno.posicao);
-						}		
+					}		
 				});
 			}
 		}; 
-		posicaoTimer.schedule(timerTask, 7000,500);
+		posicaoTimer.schedule(timerTask, 7000,2000);
 	}
 	/**
 	 * Interface para comunicar com a classe que implmenta esta interface e assim aceder aos callbacks efectuados
@@ -444,6 +615,6 @@ public class InsListener implements SensorEventListener {
 	 * @param <E>
 	 */
 	public interface OnInsChanged<E extends Enum<E>> {
-        public void onInsEvent(E value);
-    }
+		public void onInsEvent(E value);
+	}
 }

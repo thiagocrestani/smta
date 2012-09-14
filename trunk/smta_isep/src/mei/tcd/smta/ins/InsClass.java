@@ -40,14 +40,17 @@ public class InsClass {
 	private DenseMatrix64F mGyro=new DenseMatrix64F(3,1); //Guarda valores do giroscopio para o actualiza_VelocidadeGyro() e actualiza_Orientacao_Gyro()
 	private DenseMatrix64F mPosicaoInicialGPS=new DenseMatrix64F(3,1); ///Vem da posição auferida pelo GPS(transfomação de wgs82->ecef->enu).
 	private DenseMatrix64F mPosicao=new DenseMatrix64F(3,1); // Vetor posição no sistema de coordenadas global (ENU)
+	private DenseMatrix64F mVelocidadeInicialGPS=new DenseMatrix64F(3,1); // Vetor posição anterior para medir distancia entre os ultimos pontos
 	private DenseMatrix64F mVelocidade=new DenseMatrix64F(3,1);// Vetor velocidade no sistema de coordenadas global (ENU)
 	private DenseMatrix64F mAceleracao=new DenseMatrix64F(3,1); // Vetor aceleração no sistema de coordenadas local (Dispositivo)
+	private DenseMatrix64F mVelocidadeB=new DenseMatrix64F(3,1); // Vetor aceleração no sistema de coordenadas local (Dispositivo)
 	private DenseMatrix64F m3identidade=new DenseMatrix64F(3,3); // Matriz identidade 3x3 para ser usado no calculo do DCM pelo giroscopio (GyroDcm())
 	// Variaveis para calculo
 	private DenseMatrix64F tempResult1=new DenseMatrix64F(3,3); // Resultado temporario
 	private DenseMatrix64F tempResult2=new DenseMatrix64F(3,3); // Resultado temporario 2
 	private DenseMatrix64F m_temp=new DenseMatrix64F(3,1); // array temporario
 	private DenseMatrix64F m_tempdcm=new DenseMatrix64F(3,3); // DCM temporaria
+	// Valor para ser usado como indicação nos filtros passa baixo e passa alto.
 	
 	private float[] m_dcm = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
 	private float[] m_dcmposicao = new float[]{1,0,0,0,1,0,0,0,1}; // m_dcm - Matriz rotação usada para guardar valores do getrotationmatrix() dos Acc+Mag ou VetorRotacao
@@ -59,7 +62,7 @@ public class InsClass {
 		
 	public boolean jaCalculouThreshold;
 	public boolean jaAlinhou;
-	
+	public boolean jamudei = false;
 	//#################### Para debug
 	public DenseMatrix64F resultado=new DenseMatrix64F(3,1);
 	public DenseMatrix64F mGravidade=new DenseMatrix64F(3,1);
@@ -74,12 +77,34 @@ public class InsClass {
 		mAceleracao.zero();
 		mVelocidade.zero();
 		mPosicao.zero();// Aqui tenho de colocar a posicao inicial do GPS. Isso é efectuado com um setter
-				
+		mVelocidadeB.zero();
 		m_dcmGyro = CommonOps.identity(3,3);
+		mVelocidadeInicialGPS.zero();
 	}
-
+	/**
+	 * ###################   Filtros passa baixo e passa alto   ####################
+	 */
+	/**
+	 * Low Pass filter
+	 *  alpha is calculated as t / (t + dT)
+     *  with t, the low-pass filter's time-constant
+     *  and dT, the event delivery rate
+	 * Ingora grandes alterações no acelerometro
+	 */
+		public float lowPass(float current, float filtered, float alpha) {
+			return alpha * current + (1.0f - alpha) * filtered;
+		}
+	/**
+	 * High Pass filter
+	 * Ingora o aceleromtro para pequenos valores
+	 */
+		float highPass(float current, float last, float filtered,  float alpha) {
+			return alpha * (filtered + current - last);
+				  //return current;
+		}
 	
 	//----------------------------------- Inicio do processo de navegação inercial  ---------------------------------------
+	
 	/**
 	 * Inicialização da posição do INS com uma posição do GPS. O GPS envia coordenadas LAT/LONG/ALT em WGS84.
 	 * Tenho de transformar WGS84-> ECEF- > ENU (Plano tangente à terra)
@@ -91,6 +116,18 @@ public class InsClass {
 		mPosicaoInicialGPS.set(1,_posicaoInicialGPS[1]);// X-east-Longitude
 		mPosicaoInicialGPS.set(2,_posicaoInicialGPS[2]);
 		mPosicao.set(mPosicaoInicialGPS);
+	}
+	/**
+	 * Inicialização da posição do INS com uma posição do GPS. O GPS envia coordenadas LAT/LONG/ALT em WGS84.
+	 * Tenho de transformar WGS84-> ECEF- > ENU (Plano tangente à terra)
+	 * 
+	 * @param _posicaoInicialGPS array Double proveniente da transformação WGS84-> ECEF- > ENU com classe estatica Coordenadas
+	 */
+	public void setVelocidadeInicial(double[] _VelocidadeInicialGPS) {
+		mVelocidadeInicialGPS.set(0,_VelocidadeInicialGPS[0]);// X
+		mVelocidadeInicialGPS.set(1,_VelocidadeInicialGPS[1]);// Y
+		mVelocidadeInicialGPS.set(2,_VelocidadeInicialGPS[2]);// Z
+		//mPosicao.set(mPosicaoInicialGPS);
 	}
 	/**
 	 * Inicialização de matriz cosenos directores (m_dcm) para guardar valores provenientes do getRotationMatrix.
@@ -214,13 +251,21 @@ public class InsClass {
 		mAceleracao.set(0,dados[0]); //x - East
 		mAceleracao.set(1,dados[1]); //y - North
 		mAceleracao.set(2,dados[2]); //z - Up
+		
+		// v1=v0 + dt*ac
+		
+		//v = v0 + v velocidade inicial 
+		//CommonOps.addEquals(mVelocidade,mVelocidadeInicialGPS);
+		//v = v + dt * acc
 		// velocidade = velocidade + dt*aceleracao
-		//CommonOps.addEquals(mVelocidade, dt,mAceleracao);
+		CommonOps.addEquals(mVelocidade, dt,mAceleracao); // ---> Esta é a que funciona
+		//c = dt * a + b 
+		//CommonOps.add(dt,mVelocidadeInicialGPS,mAceleracao ,mVelocidade); //--> v(t) = V0 + aT
 		// Tenho de passar imediatamente a aceleração para ENU global referencial e só altera direcção de acelerelação variar
 //		for (int i = 0;i<9;i++)
 //			m_tempdcm.set(i,m_dcm[i]);
-		CommonOps.multAdd(dt,m_tempdcm,mAceleracao,mVelocidade);
-		
+//		CommonOps.multAdd(dt,m_tempdcm,mAceleracao,mVelocidade);
+//		jamudei=true;
 		
 	}
 	/**
@@ -256,10 +301,26 @@ public class InsClass {
 		// Tenho de passar para global referencial a velocidade pois à medida que aumna, tenho de orientar a direcção
 		for (int i = 0;i<9;i++)
 			m_tempdcm.set(i,m_dcm[i]);
-		
+		// c = c + alpha * a * b
 		//CommonOps.multAdd(dt,m_tempdcm,mVelocidade,mPosicao);
 		//CommonOps.addEquals(posicao,posicaoInicialGPS);
-		CommonOps.addEquals(mPosicao, dt, mVelocidade);
+		// Colocar a nova direcção na velocidade
+		//c = a * b (mult)
+		//a = a + beta * b 
+//		if(jamudei){
+//			CommonOps.addEquals(mPosicao,dt,mVelocidade);
+//			jamudei=false;
+//		}
+//		else{
+		//mPosicaoAnterior = mPosicao;
+			CommonOps.multAdd(dt,m_tempdcm,mVelocidade,mPosicao);
+			
+	//	}
+		
+		//c = c + aT * b (transposta)
+		//CommonOps.mult(m_tempdcm,mVelocidade,m_temp);
+		//a = a + Beta * b 
+		//CommonOps.addEquals(mPosicao, dt, m_temp);
 		
 	}
 	/**
@@ -553,10 +614,13 @@ public class InsClass {
 		float[] retval = new float[3];
 		DenseMatrix64F tempResult = new DenseMatrix64F(3,1);
 		DenseMatrix64F tempVetor = new DenseMatrix64F(3,1);
-		for(int i = 0;i<3;i++)
-			tempVetor.set(i,vetor[i]);
+		// Dcm em float, tenho de passar para densematrix64f
+		for (int i = 0;i<9;i++)
+			m_tempdcm.set(i,m_dcm[i]);
+		//vetor em float, tenho de passar para densmatrix
+		tempVetor=this.getFloatToDense3x1(vetor);
 		//CommonOps.transpose(m_cosenos, m_cosenost);
-		CommonOps.mult(m_dcmGyro, tempVetor, tempResult);
+		CommonOps.mult(m_tempdcm, tempVetor, tempResult);
 		for(int i = 0;i<3;i++)
 			retval[i] = (float) tempVetor.get(i);
 		return retval;

@@ -17,6 +17,18 @@
      android:defaultValue="rotvet"
      android:summary="Escolha a forma (sensores) de orientação pretendida."
      android:title="Orientação" />
+    <ListPreference
+     android:entries="@array/filtro"
+     android:entryValues="@array/filtroValues"
+     android:key="filtro"
+     android:defaultValue="highpass"
+     android:summary="Filtro para acelerometro."
+     android:title="Filtro acelerometro" />
+    <EditTextPreference
+     android:key="thresholdFiltro"
+     android:defaultValue="0.4"
+     android:summary="Alpha para filtro"
+     android:title="Cut-Off Freq" />
     <CheckBoxPreference
         android:key="efectuaCalibracao"
         android:defaultValue="false"
@@ -40,7 +52,20 @@
      android:dependency="controlaParagem"/>
 
  </PreferenceCategory>
-
+<PreferenceCategory
+   android:summary="GPS/INS Logger"
+   android:title="Opções para log" >
+  <CheckBoxPreference
+        android:key="logSensor"
+        android:defaultValue="false"
+        android:summary="Quando seleccionar a actividade logging, os valores dos sensores serão gravados."
+     android:title="Log sensores (acelerometro, giroscopio,...)." />
+  <CheckBoxPreference
+        android:key="logGps"
+        android:defaultValue="false"
+        android:summary="Quando seleccionar a actividade logging, os valores do GPS serão gravados."
+     android:title="Log GPS (latitude, longitude, etc...)." />
+ </PreferenceCategory>
  <PreferenceCategory
    android:summary="GPS"
    android:title="GPS configuração" >

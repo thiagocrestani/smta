@@ -10,11 +10,11 @@ import android.util.Log;
 
 public class SensorWriterSmta {
 	// Representa caminhos, existentes ou não
-	private File ficheiro;
+	public File ficheiro;
 	// Instancia classe FileWriter para escrever ficheiro
 	private FileWriter fileWriter;
 	
-	public void criaFicheiro(String caminho)
+	public void criaFicheiro(String caminho, String nome)
 	{
 		
 		// Criar a pasta usando o objecto File
@@ -29,7 +29,7 @@ public class SensorWriterSmta {
 		Date data = new Date();
 		// Criação do nome do ficheiro com o objeto FILE que va ser gravado no sdcard. Formatação <ano_mês_dia_hora_minuto_segundo>
 		String ficheiroNome = android.text.format.DateFormat.format("yyyy_MM_dd_hh_mm_ss", data).toString();
-		ficheiro = new File(Environment.getExternalStorageDirectory() + "/"+caminho+"/" + ficheiroNome + ".csv");
+		ficheiro = new File(Environment.getExternalStorageDirectory() + "/"+caminho+"/" + nome+ficheiroNome + ".csv");
 		try {
 			fileWriter = new FileWriter(ficheiro);
 		} catch (IOException e) {

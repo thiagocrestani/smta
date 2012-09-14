@@ -32,5 +32,18 @@
         <item name="rv">rotvet</item>
         <item name="fu">fusao</item>
     </string-array>
+     <string-array name="filtro">
+        <item name="hp">High Pass</item>
+        <item name="lp">Low Pass</item>
+        <item name="na">Nenhum</item>
+       
+        
+    </string-array>
+    
+    <string-array name="filtroValues">
+        <item name="hp">1</item>
+        <item name="lp">2</item>
+        <item name="na">3</item>
+    </string-array>
 
 </resources>

@@ -14,19 +14,20 @@ import mei.tcd.smta.gps.Gps;
 import mei.tcd.smta.gps.TrajectoOverlay;
 import mei.tcd.smta.ins.InsActivity.mTipoRetorno;
 import mei.tcd.smta.ins.InsListener.OnInsChanged;
-import mei.tcd.smta.util.WGS84;
-
+import mei.tcd.smta.util.SensorWriterSmta;
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapView;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.drawable.Drawable;
 import android.location.GpsSatellite;
 import android.location.Location;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -37,22 +38,22 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
-public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,InterfaceGps{
+public class InsGpsLogger extends MapActivity implements OnInsChanged,InterfaceGps{
 	//private Coordinates coordenadas;
 	private InsListener insListener;
 	private ProgressDialog dialog;
 	private Button startBtn;
 	private Button stopBtn;
+	private Button recBtn;
 	private Button nextBtn, previousBtn;
 	private ViewSwitcher mViewSwitcher;
-	private boolean mComecou;
-	// Coordenadas
-	private double[] posinicialEcef = new double[3];
-	private double[] posinicialENU = new double[3];
-	private float[] posEcef = new float[3];
-	private double[] poswgs84 = new double[3];
-	private float[] posEnu = new float[3];
-	private static final float RAD2GRAUS = 57.2957795f;
+	private boolean mComecou = false;//Começou o sistema
+	private boolean mStartRec = false;; //Começou a gravação
+	private boolean mComecouIns = false;
+	private boolean mComecouGps = false;
+	private boolean mLogGps = false;
+	private boolean mLogIns = false;
+	private SharedPreferences prefs;// Gestor de preferencias
 	//private View mapaView;
 	private static TextView gpsInformacao, gpsSatelites, gpsFix;
 	// Mapa
@@ -66,15 +67,19 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	double latE6,  longE6, altE6; 
 	double[] wgsOrigin = new double[3];
 	double[] ecefOrigin = new double[3];
+	double velocidadeGps = 0;
 	double latE63 = 0, longE63 = 0;
 	float[] mPosicaoAnterior = new float[3];
+	private boolean mostramsg = true;
+	//DEBUG
+	private SensorWriterSmta gps = new SensorWriterSmta();
 	@Override
 	public void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		//		this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 		//				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		setContentView(R.layout.gpsinfo);
+		setContentView(R.layout.gpslogger);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
 		// Progress dialog para inicializar e certificar que possuo uma orientação definida
@@ -86,9 +91,12 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		stopBtn = (Button) findViewById(R.id.stop);
 		nextBtn = (Button)  findViewById(R.id.maisinfo);
 		nextBtn = (Button)  findViewById(R.id.paraTras);
+		recBtn = (Button)  findViewById(R.id.rec);
+		// +Inforação
 		gpsInformacao = (TextView) findViewById(R.id.gpsInformacao);
 		gpsSatelites = (TextView) findViewById(R.id.gpsSatelites);
 		gpsFix = (TextView) findViewById(R.id.gpsFix);
+		//Viewswitcher para slider
 		mViewSwitcher = (ViewSwitcher)findViewById(R.id.viewSwitcher1);
 		// Drawable do oberlayItem.
 		Drawable inicioDrawable = getResources().getDrawable(R.drawable.dot_icon);
@@ -99,6 +107,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		// Instancia do meu listener gps
 		gpsListener = new Gps(getApplicationContext(),this);
 		latE6=0;longE6=0; altE6=0; 
+		prefs = PreferenceManager.getDefaultSharedPreferences(this.getBaseContext()); //instancio as preferencias de modo static , sem new()
 	}
 	// clicklistener do botão next view (switchviewer)
 	public void onNextClick(View view)
@@ -116,16 +125,24 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 
 		if (!mComecou)
 		{
-			
 			startBtn.setEnabled(false);
 			stopBtn.setEnabled(true);
-			
-			gpsListener.startGps();
-
+			recBtn.setEnabled(false);
 			dialog.setCancelable(false);
-			dialog.setMessage("A inicializar...a tentar obter localização do GPS!");
+			dialog.setMessage("A inicializar GPS e Ins...!");
 			dialog.show();
-
+			//mostramsg = true;
+			if(mLogGps)
+			{
+				
+				gps.criaFicheiro("smta_isep","gps");
+				gpsListener.startGps();
+			}
+			if(mLogIns)
+			{
+				insListener.setRecord(true);
+				insListener.start();
+			}
 			mComecou = true;
 		}
 	}
@@ -134,22 +151,48 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	{
 		if (mComecou)
 		{
-			//insListener.stop();
-			gpsListener.stopGps();
 			insListener.stop();
+			gpsListener.stopGps();
 			mComecou = false;
+			mStartRec = false;
+			mostramsg = false;
+			mStartRec = false;
 			// altero estado dos botões
 			startBtn.setEnabled(true);
 			stopBtn.setEnabled(false);
+			recBtn.setEnabled(false);
 
+		}
+	}
+	public void onRecClick(View view)
+	{
+
+		if (mStartRec)
+		{
+			mStartRec = false;
+			insListener.setStartRec(mStartRec);
+			recBtn.setText("StartRec");
+			stopBtn.setEnabled(true);
+			
+		}
+		else 
+		{
+			mStartRec = true;
+			insListener.setStartRec(mStartRec);
+			recBtn.setText("StopRec");
+			stopBtn.setEnabled(false);
 		}
 	}
 	@Override
 	public void onResume() {
 		super.onResume();
+		//Vou buscar as preferencia de log
+		mLogGps = prefs.getBoolean("logGps", false);
+		mLogIns = prefs.getBoolean("logSensor", false);
 		// altero estado dos botões
 		startBtn.setEnabled(!mComecou);
 		stopBtn.setEnabled(mComecou);
+		recBtn.setEnabled(mComecou);
 		// Instancio o meu listener passando o contexto e de onde
 		insListener = new InsListener(getApplicationContext(),this);
 	}
@@ -157,19 +200,29 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	public void onStop() {
 		super.onStop();
 		insListener.stop();
-
+		gpsListener.stopGps();
+		if(gps.ficheiro!=null)
+			gps.fechaFicheiro();
 	}
 
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
 		insListener.stop();
+		gpsListener.stopGps();
+		if(gps.ficheiro!=null)
+			gps.fechaFicheiro();
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		insListener.stop();
+		if(insListener!=null)
+			insListener.stop();
+		if(gpsListener!=null)
+			gpsListener.stopGps();
+		if(gps.ficheiro!=null)
+			gps.fechaFicheiro();
 	}
 	//Obrigatoriedade Google para o servidor saber se o serviço esta a ser usado para tracking
 	@Override
@@ -199,57 +252,29 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	public void onInsEvent(Enum value) {
 		if(value.name()==mTipoRetorno.orientacao.name())
 		{
-			//actualizaOrientacao(insListener.getAziPitRoll());
+			
 		}
 		if(value.name()==mTipoRetorno.velocidade.name())
 		{
-			//actualizaVelocidadeView(insListener.getVelocidade(),insListener.getSemaforo());
+			
 		}
 		if(value.name()==mTipoRetorno.posicao.name())
 		{
-			float[] posActual;
-			double[] novaCoordenada = new double[2];
-			posActual = insListener.getPosicao();
-
-
-			if(WGS84.getLastDistance(mPosicaoAnterior,posActual)>0)
-			{
-
-				novaCoordenada = WGS84.FindPointAtDistanceFrom(latE6, longE6,insListener.getAziPitRoll()[0], WGS84.getLastDistance(mPosicaoAnterior,posActual));
-				poswgs84[0] = novaCoordenada[0];
-				poswgs84[1] = novaCoordenada[1];
-				poswgs84[2] = altE6;
-				latE6 = (Math.toDegrees(poswgs84[0]));
-				longE6 = (Math.toDegrees(poswgs84[1]));
-
-
-			}
-			//Actualizo o mapa
-			trajectoOverlay.adicionaPonto(latE6,
-					longE6);
-			//Log.d("INS LatLong:","Latitude: " + poswgs84[0] + "Longitude: " + poswgs84[1]);
-
-//			gpsInformacao.setText("\nLatitude InsGps: " + posEcef[0] + "\nLongitude: " + posEcef[1]);
-//			gpsInformacao.append("\nLatitude wgs84: " + poswgs84[0]+ "\nLongitude: " + poswgs84[1]);
-			gpsInformacao.append("\nVelocidade: " +insListener.getVelocidade() );
-
-			int latE62 = (int) (latE6 * 1E6);
-			int longE62 = (int) (longE6 * 1E6);
-			mapView.getController().animateTo(new GeoPoint(latE62, longE62));
-
-			if (!initialZoomSet)
-			{
-				mapView.getController().setZoom(17);
-				initialZoomSet = true;
-			}
-			mPosicaoAnterior = posActual;
-
+			
 		}
 		if(value.name()==mTipoRetorno.inicializar.name())
 		{
 			if(insListener.getInicio())
 			{
-				dialog.dismiss();
+				if(mLogIns && !mLogGps)
+				{
+					recBtn.setEnabled(true);
+					dialog.dismiss();
+				}
+				mComecouIns = true;
+				
+				
+				
 			}
 		}
 
@@ -262,29 +287,37 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 	 */
 	@Override
 	public void onLocationChanged(Location location) {
-		// Localização inicial para o posicionamento INS
-//		double bearing = 0;
+		latE6 = location.getLatitude();
+		longE6 = location.getLongitude();
+		altE6 = location.getAltitude();
+		velocidadeGps = location.getSpeed();
+		if(mStartRec)
+		{
+			
+			gps.escreveIsto(location.getTime() + "," + latE6+ "," + longE6 + "," + altE6 + "," + location.getBearing()+ ","+location.getSpeed()+"\n");
+			
+		}
+		trajectoOverlay.adicionaPonto(latE6,
+				longE6);
+		int latE62 = (int) (latE6 * 1E6);
+		int longE62 = (int) (longE6 * 1E6);
+		mapView.getController().animateTo(new GeoPoint(latE62, longE62));
 
-		latE6 =  (location.getLatitude() );
-		longE6 =  (location.getLongitude());
-		altE6 =  (location.getAltitude());
+		if (!initialZoomSet)
+		{
+			mapView.getController().setZoom(17);
+			initialZoomSet = true;
+		}
+		gpsInformacao.setText("Velocidade (Km/h): " +velocidadeGps*(18/5) );
+		mComecouGps = true;
+		if(mComecouGps && mComecouIns){
+			recBtn.setEnabled(true);
+			dialog.dismiss();
+		}
 		
 
-		posinicialENU[0] = 0;posinicialENU[1] = 0;posinicialENU[2] = 0;
-//		Log.d("ENU Inicial:","East: " + posinicialEcef[0] + " North: " + posinicialEcef[1] + " Up: " + posinicialEcef[2] );
-//		Log.d("WGS Inicial:","Latitude: " + wgsOrigin[0] + " Longitude: " + wgsOrigin[1] + " Altura: " + wgsOrigin[2] );
-		insListener.setPosicaoInicial(posinicialEcef);
-		dialog.dismiss();
-		dialog.setCancelable(false);
-		dialog.setMessage("Localização GPS obtida. A inicializar o INS...");
-		// passo a posicao inicial para o INS
-//		latE63 =wgsOrigin[0] ;
-//		longE63 =wgsOrigin[1];
-		dialog.show();
-		insListener.start();
 
-		stopBtn.performClick();
-		
+
 	}
 	@Override
 	public void onGpsStatusChanged(int event) {
@@ -334,3 +367,4 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 
 	}
 }
+

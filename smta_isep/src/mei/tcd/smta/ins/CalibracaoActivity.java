@@ -18,9 +18,11 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 public class CalibracaoActivity extends Activity  implements SensorEventListener{
-	private static final int OBSERVACOES = 100;
+	private static final int OBSERVACOES = 500;
 	private float[] dadosAcc = new float[3];
 	private Calibracao calib;
+	private static final int LIXO=50;//apenas até assentar
+	
 	TextView calibText;
 	ProgressBar progressBar; 
 	private SensorManager sensorManager;
@@ -35,7 +37,7 @@ public class CalibracaoActivity extends Activity  implements SensorEventListener
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.calibracao);
-
+		
 		calibText = (TextView) this.findViewById(R.id.textView1);
 		progressBar = (ProgressBar) this.findViewById(R.id.progressBar1);
 
@@ -46,27 +48,31 @@ public class CalibracaoActivity extends Activity  implements SensorEventListener
 		calibText.setText("A calibrar...");
 		progressBar.setVisibility(View.INVISIBLE);
 		calibText.setVisibility(View.INVISIBLE);
+		progressBar.setMax(OBSERVACOES+LIXO);
 	}
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		if(startCalib)
 		{
+			
 			int tipoEvento = event.sensor.getType();// guarda o tipo de sensor que gerou o evento
 			switch (tipoEvento) {
 			case Sensor.TYPE_ACCELEROMETER:
-				dadosAcc[0] = event.values[0];
-				dadosAcc[1] = event.values[1];
-				dadosAcc[2] = event.values[2];
-				if(!calib.jaCalibrou){
-					calib.adicionadaXYZ(dadosAcc);
-				}
-				else
-				{
-					sensorManager.unregisterListener(this);
-					gravaPreferencias(calib.getCalibVetor());
-					progressBar.setVisibility(View.INVISIBLE);
-					calibText.setText("Calibração efectuada!\nEixo X: "+ calib.getCalibVetor()[0] + "\nEixoY: "+calib.getCalibVetor()[1] + "\nEixoZ: "+calib.getCalibVetor()[2]);
+				if(contadorProgresso>=LIXO){
+					dadosAcc[0] = event.values[0];
+					dadosAcc[1] = event.values[1];
+					dadosAcc[2] = event.values[2];
+					if(!calib.jaCalibrou){
+						calib.adicionadaXYZ(dadosAcc);
+					}
+					else
+					{
+						sensorManager.unregisterListener(this);
+						gravaPreferencias(calib.getCalibVetor());
+						progressBar.setVisibility(View.INVISIBLE);
+						calibText.setText("Calibração efectuada!\nEixo X: "+ calib.getCalibVetor()[0] + "\nEixoY: "+calib.getCalibVetor()[1] + "\nEixoZ: "+calib.getCalibVetor()[2]);
+					}
 				}
 				progressBar.setProgress(contadorProgresso);
 				contadorProgresso ++;

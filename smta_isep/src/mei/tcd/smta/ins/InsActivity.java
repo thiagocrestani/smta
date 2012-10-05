@@ -169,10 +169,10 @@ public class InsActivity extends Activity implements OnInsChanged{
 		case R.id.reset:
 			//ins.velocidade.zero();
 			return true;
-		case R.id.calibrar:
+		/*case R.id.calibrar:
 			Intent smtaCalib = new Intent(this, CalibracaoActivity.class);
 			startActivity(smtaCalib);
-			return true;
+			return true;*/
 
 		case R.id.about:
 

@@ -1,75 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
- <PreferenceCategory
-   android:summary="INS"
-   android:title="INS configuração" >
-   <ListPreference
-     android:entries="@array/rate"
-     android:entryValues="@array/rateValues"
-     android:key="rate"
-     android:defaultValue="0"
-     android:summary="Escolha a frequência dos sensores pretendida."
-     android:title="Frequência" />
-    <ListPreference
-     android:entries="@array/orientacao"
-     android:entryValues="@array/orientacaoValues"
-     android:key="orientacao"
-     android:defaultValue="rotvet"
-     android:summary="Escolha a forma (sensores) de orientação pretendida."
-     android:title="Orientação" />
-    <ListPreference
-     android:entries="@array/filtro"
-     android:entryValues="@array/filtroValues"
-     android:key="filtro"
-     android:defaultValue="highpass"
-     android:summary="Filtro para acelerometro."
-     android:title="Filtro acelerometro" />
-    <EditTextPreference
-     android:key="thresholdFiltro"
-     android:defaultValue="0.4"
-     android:summary="Alpha para filtro"
-     android:title="Cut-Off Freq" />
-    <CheckBoxPreference
-        android:key="efectuaCalibracao"
-        android:defaultValue="false"
-        android:summary="Activa ou desactiva a calibracao do acelerometro."
-     android:title="Calibração do acelerometro." />
-    <EditTextPreference
-     android:key="thresholdArranque"
-     android:defaultValue="0.4"
-     android:summary="Threshold para acelerometro (arranque)"
-     android:title="Threshold" />
-    <CheckBoxPreference
-        android:key="controlaParagem"
-        android:defaultValue="false"
-        android:summary="Activa ou desactiva o controlo de desacelaração."
-     android:title="Controlo de desacelaração." />
-  	 <EditTextPreference
-     android:key="controlaParagemContador"
-     android:defaultValue="3"
-     android:summary="Experimental: Controla o nº de registos a partir dos quais conta para desacelaração."
-     android:title="Threshold para Desacelaração" 
-     android:dependency="controlaParagem"/>
 
- </PreferenceCategory>
-<PreferenceCategory
-   android:summary="GPS/INS Logger"
-   android:title="Opções para log" >
-  <CheckBoxPreference
-        android:key="logSensor"
-        android:defaultValue="false"
-        android:summary="Quando seleccionar a actividade logging, os valores dos sensores serão gravados."
-     android:title="Log sensores (acelerometro, giroscopio,...)." />
-  <CheckBoxPreference
-        android:key="logGps"
-        android:defaultValue="false"
-        android:summary="Quando seleccionar a actividade logging, os valores do GPS serão gravados."
-     android:title="Log GPS (latitude, longitude, etc...)." />
- </PreferenceCategory>
- <PreferenceCategory
-   android:summary="GPS"
-   android:title="GPS configuração" >
-  
- </PreferenceCategory>
- 
+    <PreferenceCategory
+        android:summary="INS"
+        android:title="INS configuração" >
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/rate"
+            android:entryValues="@array/rateValues"
+            android:key="rate"
+            android:summary="Escolha a frequência dos sensores pretendida."
+            android:title="Frequência" />
+        <ListPreference
+            android:defaultValue="rotvet"
+            android:entries="@array/orientacao"
+            android:entryValues="@array/orientacaoValues"
+            android:key="orientacao"
+            android:summary="Escolha a forma (sensores) de orientação pretendida."
+            android:title="Orientação" />
+        <ListPreference
+            android:defaultValue="highpass"
+            android:entries="@array/filtro"
+            android:entryValues="@array/filtroValues"
+            android:key="filtro"
+            android:summary="Filtro para acelerometro."
+            android:title="Filtro acelerometro" />
+
+        <EditTextPreference
+            android:defaultValue="0.4"
+            android:key="thresholdFiltro"
+            android:summary="Alpha para filtro"
+            android:title="Cut-Off Freq" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="efectuaCalibracao"
+            android:summary="Activa ou desactiva a calibracao do acelerometro."
+            android:title="Calibração do acelerometro."
+            android:disableDependentsState="false" />
+
+        <EditTextPreference
+            android:defaultValue="500"
+            android:key="thresholdCalibracao"
+            android:summary="Número de observações para calibração do acelerometro."
+            android:title="Número de observações."
+            android:dependency="efectuaCalibracao" />
+        <EditTextPreference
+            android:defaultValue="0.4"
+            android:key="thresholdArranque"
+            android:summary="Threshold para acelerometro (arranque)"
+            android:title="Threshold" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="controlaParagem"
+            android:summary="Activa ou desactiva o controlo de desacelaração."
+            android:title="Controlo de desacelaração." />
+
+        <EditTextPreference
+            android:defaultValue="3"
+            android:dependency="controlaParagem"
+            android:key="controlaParagemContador"
+            android:summary="Experimental: Controla o nº de registos a partir dos quais conta para desacelaração."
+            android:title="Threshold para Desacelaração" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:summary="GPS/INS Logger"
+        android:title="Opções para log" >
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="logSensor"
+            android:summary="Quando seleccionar a actividade logging, os valores dos sensores serão gravados."
+            android:title="Log sensores (acelerometro, giroscopio,...)." />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="logGps"
+            android:summary="Quando seleccionar a actividade logging, os valores do GPS serão gravados."
+            android:title="Log GPS (latitude, longitude, etc...)." />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:summary="GPS"
+        android:title="GPS configuração" >
+    </PreferenceCategory>
+
 </PreferenceScreen>

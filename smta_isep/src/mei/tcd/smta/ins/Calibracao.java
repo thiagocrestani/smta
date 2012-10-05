@@ -1,20 +1,21 @@
 package mei.tcd.smta.ins;
 
+import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import mei.tcd.smta.util.Ops;
 
 public class Calibracao{
 	
-	private static final float GRAVIDADE = SensorManager.GRAVITY_EARTH;
+	//private static final float GRAVIDADE = SensorManager.GRAVITY_EARTH;
 	private float[] arrayX;
 	private float[] arrayY;
 	private float[] arrayZ;
-	
+	private final static float GRAVIDADE = SensorManager.GRAVITY_EARTH;
 	private float[] dadosAccCalib = new float[3];
 	// Para mais tarde efectuarmos uma calibração a três planos
-	private float[] gravidadePos1 = new float[]{0,0,GRAVIDADE}; //valores quando deitado com ecra para cima (-)
-	private float[] gravidadePos2 = new float[]{0,GRAVIDADE,0}; //valores quando de pé encostado a uma parede por exemplo (|)
-	private float[] gravidadePos3 = new float[]{GRAVIDADE,0,0}; //valores quando perpendicular a uma superficie plana com o Y paralelo a superficie (--)
+	private float[] gravidadePos1 = new float[]{0,0,0}; //valores quando deitado com ecra para cima (-)
+//	private float[] gravidadePos2 = new float[]{0,GRAVIDADE,0}; //valores quando de pé encostado a uma parede por exemplo (|)
+//	private float[] gravidadePos3 = new float[]{GRAVIDADE,0,0}; //valores quando perpendicular a uma superficie plana com o Y paralelo a superficie (--)
 	private int obervacoes;
 	private int indice = 0;
 	Ops operacoes;

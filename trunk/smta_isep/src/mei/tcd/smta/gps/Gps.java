@@ -13,8 +13,8 @@ import android.os.Bundle;
 
 public class Gps implements LocationListener, GpsStatus.Listener {
 	private InterfaceGps iGps;
-	private static final long DISTANCIA_MINIMA_ENTRE_UPDATES = 1; // Em metros  
-	private static final long TEMPO_MINIMO_ENTRE_UPDATES = 1000; // Em milisegundos  
+	private static final long DISTANCIA_MINIMA_ENTRE_UPDATES = 0; // Em metros  
+	private static final long TEMPO_MINIMO_ENTRE_UPDATES = 0; // Em milisegundos  
 	// Arrays de envio de informação satelite
 	private  ArrayList<GpsSatellite> arraySatelites = new ArrayList<GpsSatellite>();
 	// Location Manager providencia acesso aos serviços de localização

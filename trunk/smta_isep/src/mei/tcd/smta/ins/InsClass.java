@@ -90,6 +90,13 @@ public class InsClass {
      *  with t, the low-pass filter's time-constant
      *  and dT, the event delivery rate
 	 * Ingora grandes alterações no acelerometro
+	 * 
+	 *   float dt = (float) (1.0 / sampleRate);
+     *   float RC = (float) (1.0 / cutoffFrequency);
+     *   alpha = dt / (RC + dt);
+     *   
+	 * alpha trabalha bem com cutoff de 0.15
+	 * There's a constant, alpha, which affects the 'weight' or 'momentum' -- basically how drastically does the new value affect the current smoothed value. 
 	 */
 		public float lowPass(float current, float filtered, float alpha) {
 			return alpha * current + (1.0f - alpha) * filtered;
@@ -622,7 +629,7 @@ public class InsClass {
 		//CommonOps.transpose(m_cosenos, m_cosenost);
 		CommonOps.mult(m_tempdcm, tempVetor, tempResult);
 		for(int i = 0;i<3;i++)
-			retval[i] = (float) tempVetor.get(i);
+			retval[i] = (float) tempResult.get(i);
 		return retval;
 
 	}

@@ -4,6 +4,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import mei.tcd.smta.R;
+import mei.tcd.smta.filtros.MediaFiltro;
+import mei.tcd.smta.filtros.MovingAverage;
+import mei.tcd.smta.filtros.SimpleMovingAverage;
+import mei.tcd.smta.util.CalibracaoAcc;
 import mei.tcd.smta.util.Ops;
 import mei.tcd.smta.util.SensorWriterSmta;
 import android.content.Context;
@@ -24,6 +28,7 @@ public class InsListener implements SensorEventListener {
 	private SharedPreferences prefs;// Gestor de preferencias
 	private Resources resources;// Aceder aos resource (Strings, etc...)
 	private boolean mInicioIns;// Vai informar se o INS já começõu ou não
+	private Context context;
 	//Preferencias
 	private int mRateSensor;// Frequencia dos sensores definida nas preferencias e sugeridas nos listeners dos sensores.
 	private String mTipoOrientacao;// Tipo orientação definida nas preferencias e vai definir se Acc+Mag ou RotVet ou Acc+Mag+Gyro Fusão
@@ -32,6 +37,7 @@ public class InsListener implements SensorEventListener {
 	private int mControlDesaceleraThreshold = 3; //Número de registos a serem descartados após primeira desaceleração. (Valores negativos)
 	private boolean mEfectuaCalibracao;// se a calibração efectuada no sensor de aceleração é para ser usada ou não (preferecias)
 	private int filtro; //1- High pass, 2- Low pass, 3- Nenhum
+	private int mRegistosCalibracao =0; // Número de registo para calibração do acelerometro antes de cda corrida
 	private float filtroAlpha;
 	//---------------------------
 	private int mSemaforo; // devolve um valor a sinalizar se está em aceleração, parado ou a desacelerar
@@ -39,23 +45,40 @@ public class InsListener implements SensorEventListener {
 	// dadosAcc, dadosGyro,dadosMag,dadosRotVet - Dados dos sensores em arrays float
 	private float[] mCalibVetor = new float[3]; // Vai guardar os valores obtidos da calibração do acelerometro e usa-los na obtenção de valores Acc melhorados.
 	private float[] mDadosAcc = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
+	private float[] mDadosGravidade = new float[3]; // Vetor aceleração de gravidade nos 3 eixos (X, Y e Z)
+	private float[] mDadosAccCalib = new float[3]; // Vetor aceleração com calibração
 	private float[] mDadosAccFiltro = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
 	private float[] mDadosAccLinearFiltro = new float[3]; // Vetor aceleração obtida do Acelerometro nos 3 eixos (X, Y e Z)
 	private float[] mDadosGyro = new float[3]; // Vetor rotaçao obtida do Giroscopio  nos 3 eixos (X, Y e Z)
 	private float[] mDadosMag = new float[3]; // Vetor Micro Teslas obtida do magnetometro  nos 3 eixos (X, Y e Z)
 	private float[] mDadosMinhaAccLin = new float[3]; // Acelerometro linear retirando a gravidade com DCM na classe InsClass
 	private float[] mDadosLinear = new float[3]; // Acelerometro linear do android
-	private float[] mDadosMinhaAccLinFiltro = new float[3]; // Acelerometro linear retirando a gravidade com DCM na classe InsClass
+	private float[] mDadosMediaAcc = new float[3]; // Acelerometro linear retirando a gravidade com DCM na classe InsClass
+	private float[] mDadosMediaAccLinear = new float[3]; // Acelerometro linear retirando a gravidade com DCM na classe InsClass
 	private float[] mDadosRotVet = new float[3]; // Vetor rotação obtido do sensor virtual Rotation Vector.
 	private float[] mAziPitRol = new float[3]; // Azimuth pith e roll de retorno
 	private float[] globalCoords = new float[3]; //Vetor temporario para coordenadas globais
+	
+	//Filtro
+	private static final int MEDIA_FILTRO_SIZE=5;
+	private static final int SMA_SIZE=5;
+	private MovingAverage mSmaX = new MovingAverage(SMA_SIZE);
+	private MovingAverage mSmaY = new MovingAverage(SMA_SIZE);
+	private MovingAverage mSmaZ = new MovingAverage(SMA_SIZE);
+	private SimpleMovingAverage mSma2X = new SimpleMovingAverage(SMA_SIZE);
+	private SimpleMovingAverage mSma2Y = new SimpleMovingAverage(SMA_SIZE);
+	private SimpleMovingAverage mSma2Z = new SimpleMovingAverage(SMA_SIZE);
+	
+	private MediaFiltro mFiltroAcc = new MediaFiltro(MEDIA_FILTRO_SIZE);
+	private MediaFiltro mFiltroAccLinear = new MediaFiltro(MEDIA_FILTRO_SIZE);
 	private long eventTime = 0;// eventTime - Tempo em nanosegundos quando o evento aconteceu
 	private boolean mRecord,mStartRecord=false;
 	// anteriorEventTimeAcc, anteriorEventTimeGyro,anteriorEventTimeMag,anteriorEventTimeRotVet - Tempo em nanosegundos do evento anterior dos três sensores
-	private long anteriorEventTimeAcc = 0, anteriorEventTimeGyro = 0,anteriorEventTimeMag = 0, anteriorEventTimeRotVet = 0;
+	private long anteriorEventTimeGravidade = 0,anteriorEventTimeAcc = 0, anteriorEventTimeGyro = 0,anteriorEventTimeMag = 0, anteriorEventTimeRotVet = 0,anteriorEventAccLinear = 0;
 	private int mContadorDes = 0;// contadorDes - Para ser usado em conjunto com o controlo de desaceleração
 	private InsClass ins;// ins - Instancia classe INS
 	private Ops operacoes;// ops - Instancia da classe de operações genéricas
+	private CalibracaoAcc calibAcc;
 	// Handlers 
 	// Com os handler podemos enviar e processar mensagens no message Queue (fila de mensagens) na thread
 	private Handler startHandler = new Handler();  // Obriga a começar quando 10s para certificar que a orientação está fixa e que o threshold da aceleração foi calculada
@@ -65,17 +88,55 @@ public class InsListener implements SensorEventListener {
 	// Interface para comunicar com quem instancia e enviar os retornos quando prontos.
 	private OnInsChanged<tipoRetorno> listener;
 	// Debug----------------------
-	private SensorWriterSmta acelerometro = new SensorWriterSmta();
-	private SensorWriterSmta acelerometroGlobais = new SensorWriterSmta();// Aceleração  coordenadas globais
-	private SensorWriterSmta acelerometroFiltro = new SensorWriterSmta();
-	private SensorWriterSmta AccMeuLinear = new SensorWriterSmta();
-	private SensorWriterSmta AccMeuLinearGlobais = new SensorWriterSmta();// Aceleração linear coordenadas globais
-	private SensorWriterSmta AccMeuLinearFiltro = new SensorWriterSmta();
-	private SensorWriterSmta AccLinear = new SensorWriterSmta();
-	private SensorWriterSmta AccLinearGlobais = new SensorWriterSmta();
-	private SensorWriterSmta AccLinearFiltro = new SensorWriterSmta();
+	// Acc_Filtro_Globais - Guarda registos de Aceleração, aceleração filtrada e aceleração para coordenadas globais ENU
+	// [1] - Timestamp - Tempo em nanosegundos
+	// [2] - Dt - Tempo entre eventos
+	// [3] - Aceleração Eixo X
+	// [4] - Aceleração Eixo Y
+	// [5] - Aceleração Eixo Z
+	// [6] - Aceleração Filtro Eixo X
+	// [7] - Aceleração Filtro Eixo Y
+	// [8] - Aceleração Filtro Eixo Z
+	// [9] - Tipo de filtro
+	// [10] - Valor do filtro
+	// [11] - Aceleração Globais Eixo X
+	// [12] - Aceleração Globais Eixo Y
+	// [13] - Aceleração Globais Eixo Z
+	// [14] - Aceleração sma Eixo X
+	// [15] - Aceleração sma Eixo Y
+	// [16] - Aceleração sma Eixo Z
+	// [17] - Calibração Eixo X
+	// [18] - Calibração Eixo Y
+	// [19] - Calibração Eixo X
+	// [20] - Aceleração X + Calibração Eixo X
+	// [21] - Aceleração Y + Calibração Eixo Y
+	// [22] - Aceleração Z + Calibração Eixo X
+	// [23] - SMA2 Aceleração X 
+	// [24] - SMA2 Aceleração Y 
+	// [25] - SMA2 Aceleração Z 
+	// AccLinear_Filtro_Globais - Guarda registos de Aceleração Linear, aceleração linear filtrada e aceleração linear para coordenadas globais ENU
+	// [1] - Timestamp - Tempo em nanosegundos
+	// [2] - Dt - Tempo entre eventos
+	// [3] - Aceleração Eixo X
+	// [4] - Aceleração Eixo Y
+	// [5] - Aceleração Eixo Z
+	// [6] - Aceleração Filtro Eixo X
+	// [7] - Aceleração Filtro Eixo Y
+	// [8] - Aceleração Filtro Eixo Z
+	// [9] - Tipo de filtro
+	// [10] - Valor do filtro
+	// [11] - Aceleração Globais Eixo X
+	// [12] - Aceleração Globais Eixo Y
+	// [13] - Aceleração Globais Eixo Z
+	private SensorWriterSmta Acc_Filtro_Globais = new SensorWriterSmta(); //
+	private SensorWriterSmta AccMediaFiltro = new SensorWriterSmta();
+	private SensorWriterSmta AccLinear_Filtro_Globais = new SensorWriterSmta();
+	private SensorWriterSmta AccLinearMediaFiltro = new SensorWriterSmta();
+	private SensorWriterSmta AccMeuLinear_Globais = new SensorWriterSmta();
 	private SensorWriterSmta magnetometro = new SensorWriterSmta();
 	private SensorWriterSmta giroscopio = new SensorWriterSmta();
+	private SensorWriterSmta gravidade = new SensorWriterSmta();
+
 
 	// Variaveis de reotrnos
 
@@ -221,7 +282,8 @@ public class InsListener implements SensorEventListener {
 	 * @param OnInsChanged interface do tipo OnInsChanged para comunicar os eventos. Esta interface deve estar implementada na actividade que o chama.
 	 *  
 	 */
-	public InsListener(Context context,OnInsChanged onInsChanged){
+	public InsListener(Context _context,OnInsChanged onInsChanged){
+		this.context = _context;
 		this.setVelocidadeZero(); // Inicializar a velocidade a zero.
 		resources = context.getResources();// Tenho de ir buscar os resources, caso contrario devolve nullpointer
 		// Referenciar o sensorManager
@@ -243,6 +305,7 @@ public class InsListener implements SensorEventListener {
 		mDadosAccFiltro[0] = 0;
 		mDadosAccFiltro[1] = 0;
 		mDadosAccFiltro[2] = 0;
+		
 
 	}
 	/**
@@ -265,20 +328,15 @@ public class InsListener implements SensorEventListener {
 			sensorManager.unregisterListener(this); // Retiro os listeners dos sensores
 		//sensorWriter.fechaFicheiro();
 		this.setInicio(false);// Coloco o inicio igual a false.
-		if(acelerometro.ficheiro!=null && acelerometroFiltro.ficheiro!=null && AccMeuLinear.ficheiro!=null && magnetometro.ficheiro!=null && giroscopio.ficheiro!=null){
-			acelerometro.fechaFicheiro();
-			acelerometroFiltro.fechaFicheiro();
-			AccMeuLinear.fechaFicheiro();
-			AccLinear.fechaFicheiro();
-			AccLinearGlobais.fechaFicheiro();
-			AccMeuLinearFiltro.fechaFicheiro();
-			AccLinearFiltro.fechaFicheiro();
-			acelerometroGlobais.fechaFicheiro();
-			//acelerometroFiltroGlobais.fechaFicheiro();
-			AccMeuLinearGlobais.fechaFicheiro();
-			//AccMeuLinearFiltroGlobais.fechaFicheiro();
+		if(AccMediaFiltro.ficheiro!=null && Acc_Filtro_Globais.ficheiro!=null && AccMeuLinear_Globais.ficheiro!=null && magnetometro.ficheiro!=null && giroscopio.ficheiro!=null){
+			Acc_Filtro_Globais.fechaFicheiro();
+			AccMediaFiltro.fechaFicheiro();
+			AccLinear_Filtro_Globais.fechaFicheiro();
+			AccLinearMediaFiltro.fechaFicheiro();
+			AccMeuLinear_Globais.fechaFicheiro();
 			magnetometro.fechaFicheiro();
 			giroscopio.fechaFicheiro();
+			gravidade.fechaFicheiro();
 		}
 	}
 	/**
@@ -309,30 +367,54 @@ public class InsListener implements SensorEventListener {
 		float dt = 0; // Intervalo de tempo entre o evento actual e o anterior (posterior passagem para segundos)
 		switch (tipoEvento) {
 		case Sensor.TYPE_ACCELEROMETER:
-			// High Pass
+			// Filtro High Pass
 			if(filtro==1){
-				mDadosAccFiltro[0] = ins.highPass(event.values[0], mDadosAcc[0], mDadosAccFiltro[0],filtroAlpha);
-				mDadosAccFiltro[1] = ins.highPass(event.values[1], mDadosAcc[1], mDadosAccFiltro[1],filtroAlpha);
-				mDadosAccFiltro[2] = ins.highPass(event.values[2], mDadosAcc[2], mDadosAccFiltro[2],filtroAlpha);
+				mDadosAccFiltro[0] = ins.highPass(event.values[0] + mCalibVetor[0], mDadosAccCalib[0], mDadosAccFiltro[0],filtroAlpha);
+				mDadosAccFiltro[1] = ins.highPass(event.values[1] + mCalibVetor[1], mDadosAccCalib[1], mDadosAccFiltro[1],filtroAlpha);
+				mDadosAccFiltro[2] = ins.highPass(event.values[2] + mCalibVetor[2], mDadosAccCalib[2], mDadosAccFiltro[2],filtroAlpha);
 			}
-			// Low Pass
+			// Filtro Low Pass
 			else if(filtro==2){
-				mDadosAccFiltro[0] = ins.lowPass(event.values[0], mDadosAccFiltro[0],filtroAlpha);
-				mDadosAccFiltro[1] = ins.lowPass(event.values[1], mDadosAccFiltro[1],filtroAlpha);
-				mDadosAccFiltro[2] = ins.lowPass(event.values[2], mDadosAccFiltro[2],filtroAlpha);
+				mDadosAccFiltro[0] = ins.lowPass(event.values[0] + mCalibVetor[0], mDadosAccFiltro[0],filtroAlpha);
+				mDadosAccFiltro[1] = ins.lowPass(event.values[1] + mCalibVetor[1], mDadosAccFiltro[1],filtroAlpha);
+				mDadosAccFiltro[2] = ins.lowPass(event.values[2] + mCalibVetor[2], mDadosAccFiltro[2],filtroAlpha);
 			}
-			mDadosAcc[0] = event.values[0] + mCalibVetor[0];
-			mDadosAcc[1] = event.values[1] + mCalibVetor[1];
-			mDadosAcc[2] = event.values[2] + mCalibVetor[2];
-
+			// Guarda os registos
+			mDadosAcc[0] = event.values[0] ;
+			mDadosAcc[1] = event.values[1] ;
+			mDadosAcc[2] = event.values[2];
+			mDadosAccCalib[0] = event.values[0] + mCalibVetor[0];
+			mDadosAccCalib[1] = event.values[1] + mCalibVetor[1];
+			mDadosAccCalib[2] = event.values[2] + mCalibVetor[2];
+			
+			// Calcula do Dt tempo entre eventos
 			if (anteriorEventTimeAcc != 0)
 				dt = (eventTime - anteriorEventTimeAcc) * NS2S;
 			anteriorEventTimeAcc = eventTime;
+			// Verifica se já iniciou o INS e se é para guardar registos
 			if(mInicioIns && mStartRecord){
+				
+				// Vai buscar as coordenadas globias AccW = Acc * DCM
 				globalCoords = ins.getWorldVector(mDadosAcc);
-				acelerometro.escreveIsto(eventTime + "," + dt + "," + mDadosAcc[0] + "," + mDadosAcc[1] + "," + mDadosAcc[2] + "\n");
-				acelerometroGlobais.escreveIsto(eventTime + "," + dt + "," + globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2] + "\n");
-				acelerometroFiltro.escreveIsto(eventTime + "," + dt + "," + mDadosAccFiltro[0] + "," + mDadosAccFiltro[1] + "," + mDadosAccFiltro[2]+ ","+ filtro + "," + filtroAlpha + "\n");
+				// SMA2 do livro
+				mSma2X.pushValue(mDadosAccCalib[0]);
+				mSma2Y.pushValue(mDadosAccCalib[1]);
+				mSma2Z.pushValue(mDadosAccCalib[2]);
+				//mSmaX.compute(mDadosAcc[0]);
+				Acc_Filtro_Globais.escreveIsto(eventTime + "," + dt + "," + mDadosAcc[0] + "," + mDadosAcc[1] + "," + mDadosAcc[2] + "," +
+						mDadosAccFiltro[0] + "," + mDadosAccFiltro[1] + "," + mDadosAccFiltro[2]+ ","+ filtro + "," + filtroAlpha + "," +
+						globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2] + "," +
+						mSmaX.compute(mDadosAcc[0]) + "," +mSmaY.compute(mDadosAcc[1]) + "," + mSmaZ.compute(mDadosAcc[2]) + "," +
+						mCalibVetor[0] + "," + mCalibVetor[1] + "," + mCalibVetor[2] + "," +
+						mDadosAccCalib[0] + "," + mDadosAccCalib[1] + "," + mDadosAccCalib[2] + "," + 
+						mSma2X.getValue() + "," + mSma2Y.getValue() + "," + mSma2Z.getValue() + "\n");
+				mFiltroAcc.adicionaVector(new float[]{dt,mDadosAcc[0],mDadosAcc[1],mDadosAcc[2]});
+				// Média de X valores
+				if(mFiltroAcc.getCount()==MEDIA_FILTRO_SIZE){
+					mDadosMediaAcc = mFiltroAcc.getMediaVector();
+					AccMediaFiltro.escreveIsto(eventTime + "," + mDadosMediaAcc[0] + "," + mDadosMediaAcc[1] + "," + mDadosMediaAcc[2] + "," + mDadosMediaAcc[3] + "\n");
+				}
+				
 				
 			}
 			break;
@@ -345,6 +427,17 @@ public class InsListener implements SensorEventListener {
 			anteriorEventTimeGyro = eventTime;
 			if(mInicioIns && mStartRecord){
 				giroscopio.escreveIsto(eventTime + "," + dt + "," + mDadosGyro[0] + "," + mDadosGyro[1] + "," + mDadosGyro[2]+ "\n");
+			}
+			break;
+		case Sensor.TYPE_GRAVITY:
+			mDadosGravidade[0] = event.values[0];
+			mDadosGravidade[1] = event.values[1];
+			mDadosGravidade[2] = event.values[2];
+			if (anteriorEventTimeGyro != 0)
+				dt = (eventTime - anteriorEventTimeGravidade) * NS2S;
+			anteriorEventTimeGravidade = eventTime;
+			if(mInicioIns && mStartRecord){
+				gravidade.escreveIsto(eventTime + "," + dt + "," + mDadosGravidade[0] + "," + mDadosGravidade[1] + "," + mDadosGravidade[2]+ "\n");
 			}
 			break;
 		case Sensor.TYPE_MAGNETIC_FIELD:
@@ -383,14 +476,20 @@ public class InsListener implements SensorEventListener {
 			mDadosLinear[0] = event.values[0];
 			mDadosLinear[1] = event.values[1];
 			mDadosLinear[2] = event.values[2];
-			if (anteriorEventTimeRotVet != 0)
-				dt = (eventTime - anteriorEventTimeRotVet) * NS2S;
-			anteriorEventTimeRotVet = eventTime;
+			if (anteriorEventAccLinear != 0)
+				dt = (eventTime - anteriorEventAccLinear) * NS2S;
+			anteriorEventAccLinear = eventTime;
 			if(mInicioIns && mStartRecord){
 				globalCoords = ins.getWorldVector(mDadosLinear);
-				AccLinearGlobais.escreveIsto(eventTime + "," + dt + "," + globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2]+ "\n");
-				AccLinear.escreveIsto(eventTime + "," + dt + "," + mDadosLinear[0] + "," + mDadosLinear[1] + "," + mDadosLinear[2]+ "\n");
-				AccLinearFiltro.escreveIsto(eventTime + "," + dt + "," + mDadosAccLinearFiltro[0] + "," + mDadosAccLinearFiltro[1] + "," + mDadosAccLinearFiltro[2]+ "\n");
+				AccLinear_Filtro_Globais.escreveIsto(eventTime + "," + dt + "," + mDadosLinear[0] + "," + mDadosLinear[1] + "," + mDadosLinear[2]+"," +
+						mDadosAccLinearFiltro[0] + "," + mDadosAccLinearFiltro[1] + "," + mDadosAccLinearFiltro[2]+ "," + filtro + "," + filtroAlpha + "," +
+						globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2]+ "\n");
+				
+				mFiltroAccLinear.adicionaVector(new float[]{dt,mDadosLinear[0],mDadosLinear[1],mDadosLinear[2]});
+				if(mFiltroAccLinear.getCount()==MEDIA_FILTRO_SIZE){
+					mDadosMediaAccLinear = mFiltroAccLinear.getMediaVector();
+					AccLinearMediaFiltro.escreveIsto(eventTime + "," + mDadosMediaAccLinear[0] + "," + mDadosMediaAccLinear[1] + "," + mDadosMediaAccLinear[2] + "," + mDadosMediaAccLinear[3] + "\n");
+				}
 			}
 			break;
 		}
@@ -408,8 +507,9 @@ public class InsListener implements SensorEventListener {
 				mDadosMinhaAccLin = ins.getAccLinear(mDadosAcc);
 				if(mStartRecord){
 					globalCoords = ins.getWorldVector(mDadosMinhaAccLin);
-					AccMeuLinear.escreveIsto(eventTime + "," + dt + "," + mDadosMinhaAccLin[0] + "," + mDadosMinhaAccLin[1] + "," + mDadosMinhaAccLin[2]+ "\n");
-					AccMeuLinearGlobais.escreveIsto(eventTime + "," + dt + "," + globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2]+ "\n");
+					AccMeuLinear_Globais.escreveIsto(eventTime + "," + dt + "," + mDadosMinhaAccLin[0] + "," + mDadosMinhaAccLin[1] + "," + mDadosMinhaAccLin[2]+ "," +
+							globalCoords[0] + "," + globalCoords[1] + "," + globalCoords[2]+ "\n");
+					
 					
 				}
 
@@ -508,6 +608,7 @@ public class InsListener implements SensorEventListener {
 		//sensorManager.unregisterListener(this);
 		// Vai buscar as preferencioas
 		mRateSensor = Integer.parseInt(prefs.getString("rate", "0"));
+		mRegistosCalibracao = Integer.parseInt(prefs.getString("thresholdCalibracao", "500"));
 		mTipoOrientacao = prefs.getString("orientacao", "rotvet");
 		mCoeficienteThreshold = Float.parseFloat(prefs.getString("thresholdArranque", "0.4f"));
 		mControlDesacelera = prefs.getBoolean("controlaParagem", false);
@@ -516,7 +617,12 @@ public class InsListener implements SensorEventListener {
 		mEfectuaCalibracao = prefs.getBoolean("efectuaCalibracao", false);
 		filtro = Integer.parseInt(prefs.getString("filtro", "3"));
 		filtroAlpha = Float.parseFloat(prefs.getString("thresholdFiltro", "0.3f"));
+		// Efectuar calibração
+//		calibAcc = new CalibracaoAcc();
+//		calibAcc.start(this.context, mRegistosCalibracao);
+		
 		// Se efectua calibração, então carrego o vetor calibração dos valores calibrados para aproximação
+		
 		if(mEfectuaCalibracao && prefs.contains("AccCalibX"))
 		{
 
@@ -529,6 +635,9 @@ public class InsListener implements SensorEventListener {
 		//TODO Retirar este quando final
 		sensorManager.registerListener(this,
 				sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+				mRateSensor);
+		sensorManager.registerListener(this,
+				sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 				mRateSensor);
 		//--------------------------------------------------------------------
 		// O acelerometro fica sempre activo
@@ -575,20 +684,22 @@ public class InsListener implements SensorEventListener {
 			public void run() { 
 				if(mRecord) //se for para gravar entao criar ficheiros
 				{
-					acelerometro.criaFicheiro("smta_isep","acc");
-					acelerometroGlobais.criaFicheiro("smta_isep","accglobais");
-					acelerometroFiltro.criaFicheiro("smta_isep","accfiltro");
-					AccLinear.criaFicheiro("smta_isep","acclinear");
-					AccLinearGlobais.criaFicheiro("smta_isep","acclinearglobais");
-					AccLinearFiltro.criaFicheiro("smta_isep","acclinearfiltro");
-					AccMeuLinearFiltro.criaFicheiro("smta_isep","accmeulinearfiltro");
-					AccMeuLinear.criaFicheiro("smta_isep","accmeulinear");
-					AccMeuLinearGlobais.criaFicheiro("smta_isep","accmeulinearglobais");
+					Acc_Filtro_Globais.criaFicheiro("smta_isep","AccFiltroGlobais");
+					AccMediaFiltro.criaFicheiro("smta_isep","AccMediaFiltro");
+					
+					AccLinear_Filtro_Globais.criaFicheiro("smta_isep","AccLinearFiltroGlobais");
+					AccLinearMediaFiltro.criaFicheiro("smta_isep","AccLinearMediaFiltro");
+					
+					AccMeuLinear_Globais.criaFicheiro("smta_isep","AccMeulinearGlobais");
+					
 					magnetometro.criaFicheiro("smta_isep","mag");
 					giroscopio.criaFicheiro("smta_isep","gyr");
+					gravidade.criaFicheiro("smta_isep","gravidade");
 										
 				}
-				setInicio(true);
+				
+				// Set flasg para inicio
+				setInicio(true); // Aqui digo que está tudo pronto
 				// Para verificar que está pronto
 				listener.onInsEvent(tipoRetorno.inicializar);
 

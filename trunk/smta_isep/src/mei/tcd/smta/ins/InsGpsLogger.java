@@ -129,7 +129,7 @@ public class InsGpsLogger extends MapActivity implements OnInsChanged,InterfaceG
 			stopBtn.setEnabled(true);
 			recBtn.setEnabled(false);
 			dialog.setCancelable(false);
-			dialog.setMessage("A inicializar GPS e Ins...!");
+			dialog.setMessage("A inicializar / calibrar o GPS e sensores do Ins...!");
 			dialog.show();
 			//mostramsg = true;
 			if(mLogGps)

@@ -165,12 +165,13 @@ public class SensorInfo extends Activity implements SensorEventListener{
         timestampUnits.setVisibility(View.VISIBLE);
         switch (event.sensor.getType())
         {
+       
             case Sensor.TYPE_ACCELEROMETER:
                 showEventData("Acceleration - gravity on axis",
                         ACCELERATION_UNITS,
                         event.values[0],
                         event.values[1],
-                        event.values[2]);
+                        event.values[2]+0.44f); //*1.044f
                 break;
                 
             case Sensor.TYPE_MAGNETIC_FIELD:

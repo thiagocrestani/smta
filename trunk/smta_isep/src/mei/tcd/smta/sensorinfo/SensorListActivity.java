@@ -1,12 +1,10 @@
 package mei.tcd.smta.sensorinfo;
 
-import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import mei.tcd.smta.BuildConfig;
 import mei.tcd.smta.R;
-import mei.tcd.smta.Smta_Start;
-import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
@@ -17,6 +15,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
@@ -25,10 +24,23 @@ public class SensorListActivity extends ListActivity {
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.listasensoreslayout);
         SensorManager sManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);// Para aceder aos sensores tenho de inicializar a instancia
         List<Sensor> sensores = sManager.getSensorList(Sensor.TYPE_ALL); // Lista que mantem os elementos ordenados. Carrego a lista com os sensores encontrados.
-        this.setListAdapter(new SensorListAdapter(this,android.R.layout.simple_list_item_1,sensores));
+        List<Sensor> sensoresReais = new ArrayList<Sensor>();
+        int i=0;
+        for (Sensor sensor : sensores) {
+            Log.d("Sensors", "" + sensor.getName());
+            //sensoresReais.add(i,sensor);
+            if(!sensor.getName().contains("placeholder"))
+            {
+            	sensoresReais.add(i,sensor);
+            	 i++;
+            }
+           
+        }
+        this.setListAdapter(new SensorListAdapter(this,android.R.layout.simple_list_item_1,sensoresReais));
     }
 	// Adapter para listView para mostrar os nomes dos sensores e responder a cliques
 	private class SensorListAdapter extends ArrayAdapter<Sensor>
@@ -69,6 +81,7 @@ public class SensorListActivity extends ListActivity {
 			});
 			return convertView;
 		}
+		
 		
 	}
 

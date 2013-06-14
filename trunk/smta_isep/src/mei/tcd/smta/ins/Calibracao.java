@@ -1,6 +1,5 @@
 package mei.tcd.smta.ins;
 
-import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import mei.tcd.smta.util.Ops;
 
@@ -12,10 +11,10 @@ public class Calibracao{
 	private float[] arrayZ;
 	private final static float GRAVIDADE = SensorManager.GRAVITY_EARTH;
 	private float[] dadosAccCalib = new float[3];
-	// Para mais tarde efectuarmos uma calibração a três planos
-	private float[] gravidadePos1 = new float[]{0,0,0}; //valores quando deitado com ecra para cima (-)
-//	private float[] gravidadePos2 = new float[]{0,GRAVIDADE,0}; //valores quando de pé encostado a uma parede por exemplo (|)
-//	private float[] gravidadePos3 = new float[]{GRAVIDADE,0,0}; //valores quando perpendicular a uma superficie plana com o Y paralelo a superficie (--)
+//	// Para mais tarde efectuarmos uma calibração a três planos
+//	private float[] gravidadePos1 = new float[]{0,0,0}; //valores quando deitado com ecra para cima (-)
+////	private float[] gravidadePos2 = new float[]{0,GRAVIDADE,0}; //valores quando de pé encostado a uma parede por exemplo (|)
+////	private float[] gravidadePos3 = new float[]{GRAVIDADE,0,0}; //valores quando perpendicular a uma superficie plana com o Y paralelo a superficie (--)
 	private int obervacoes;
 	private int indice = 0;
 	Ops operacoes;
@@ -31,6 +30,11 @@ public class Calibracao{
 		indice = 0;
 		resetCalib();
 	}
+	
+	/***
+	 * Vai buscar a média dos valores gravados em cada um dos eixos
+	 * @return o vetor média dos valores
+	 */
 	public float[] getCalibVetor()
 	{
 		return dadosAccCalib;
@@ -42,6 +46,10 @@ public class Calibracao{
 		indice = 0;
 		
 	}
+	/***
+	 * Adiciona o valor ao array de valores de cada eixo para quando finalizar, então calcular a média
+	 * @param _xyz
+	 */
 	public void adicionadaXYZ(float[] _xyz)
 	{
 		if(indice==this.obervacoes-1)
@@ -51,9 +59,9 @@ public class Calibracao{
 			dadosAccCalib[1] = operacoes.getMedia(arrayY);
 			dadosAccCalib[2] = operacoes.getMedia(arrayZ);
 		}
-		arrayX[indice] = gravidadePos1[0] - _xyz[0];
-		arrayY[indice] = gravidadePos1[1] - _xyz[1];
-		arrayZ[indice] = gravidadePos1[2] - _xyz[2];
+		arrayX[indice] =  _xyz[0];
+		arrayY[indice] =  _xyz[1];
+		arrayZ[indice] =  _xyz[2];
 		indice ++;
 	}
 }

@@ -3,44 +3,43 @@
     package="mei.tcd.smta"
     android:versionCode="1"
     android:versionName="1.0" >
-
-    <uses-sdk android:minSdkVersion="10" />
-     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION">  
-    </uses-permission>
-     
+    <uses-sdk android:minSdkVersion="11" />
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+    <permission android:name="mei.tcd.smta.permission.MAPS_RECEIVE"
+        android:protectionLevel="signature"/>
+       
+    <uses-permission android:name="mei.tcd.smta.permission.MAPS_RECEIVE"/>    
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>  
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET" /> 
-    <application
-        android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name" >
-       <uses-library android:name="com.google.android.maps" /> 
-        <activity android:name=".sensorinfo.SensorListActivity">
-             
-        </activity>
-        <activity android:name=".sensorinfo.SensorInfo">
-            
-        </activity>
-        <activity android:name="Smta_Start" 
-            >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES"/>
+    <application android:icon="@drawable/ic_launcher" android:label="@string/app_name" >
+    <meta-data android:name="com.google.android.maps.v2.API_KEY" android:value="AIzaSyAcQWQiJtAPlzJANF0LF_r-IncJ4k4uSMo"/>
+     <!--  <uses-library android:name="com.google.android.maps" />  --> 
+    <activity android:name=".sensorinfo.SensorListActivity" />
+    <activity android:name=".sensorinfo.SensorInfo" />
+    <activity android:name="Smta_Start" >
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity android:name=".ins.InsActivity" android:screenOrientation="portrait"></activity>
-        <activity android:name=".ins.Smta_ORI_Activity"></activity>
-        <activity android:name="SmtaPreferences"></activity>
-        <activity android:name=".ins.CalibracaoActivity"></activity>
-        <activity android:name=".ins.Smta_INS_Activity"></activity>
-        <activity android:name=".gps.Gps_Activity"></activity>
-        <activity android:name=".gps.Gps_Activity2"></activity>
-        <activity android:name=".servicefusion.ServiceActivity"></activity>
-        <activity android:name=".gps.Gps_Activity"></activity>
-        <activity android:name=".ins.InsActivity"></activity>
-        <service android:name=".servicefusion.ServiceFusao"></service>
-        <activity android:name=".ins.InsGpsMapsActivity"></activity>
-        <activity android:name=".ins.InsGpsLogger"></activity>
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
+    <activity android:name=".ins.InsActivity" android:screenOrientation="portrait"></activity>
+    <activity android:name=".ins.Smta_ORI_Activity"></activity>
+    <activity android:name="SmtaPreferences"></activity>
+    <activity android:name=".ins.CalibracaoActivity"></activity>
+    <activity android:name=".ins.Smta_INS_Activity"></activity>
+    <activity android:name=".gps.Gps_Activity"></activity>
+   
+    <activity android:name=".servicefusion.ServiceActivity"></activity>
+       
+       
+    <service android:name=".servicefusion.ServiceFusao"></service>
+    <activity android:name=".ins.InsGpsMapsActivity"></activity>
+    <activity android:name=".ins.InsGpsLogger"></activity>
     </application>
 
 </manifest>

@@ -4,15 +4,25 @@ import java.util.List;
 
 import mei.tcd.smta.BuildConfig;
 import mei.tcd.smta.R;
+import mei.tcd.smta.SmtaPreferences;
+import mei.tcd.smta.ins.CalibracaoActivity;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.view.LayoutInflater;
@@ -47,11 +57,17 @@ public class SensorInfo extends Activity implements SensorEventListener{
     private TextView cos;
     
     String sensorString = "";
+    private SharedPreferences prefs;// Gestor de preferencias
+    private float[] mCalibVetor_scale = new float[3]; // Vai guardar os valores obtidos da calibração do acelerometro e usa-los na obtenção de valores Acc melhorados.
+	private float[] mCalibVetor_bias = new float[3]; // Vai guardar os valores obtidos da calibração do acelerometro e usa-los na obtenção de valores Acc melhorados.
+    private boolean mEfectuaCalibracao;// se a calibração efectuada no sensor de aceleração é para ser usada ou não (preferecias)
     
     @Override
     public void onCreate(Bundle savedInstanceState){
     	super.onCreate(savedInstanceState);
+    	getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     	setContentView(R.layout.sensor_info);    
+    	setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     	// Ok tentativa de buscar os parametros passados
     	// Vou buscar o intent que iniciou esta actividade
     	Bundle extras = getIntent().getExtras(); 
@@ -167,22 +183,22 @@ public class SensorInfo extends Activity implements SensorEventListener{
         {
        
             case Sensor.TYPE_ACCELEROMETER:
-                showEventData("Acceleration - gravity on axis",
+                showEventData("Aceleração",
                         ACCELERATION_UNITS,
-                        event.values[0],
-                        event.values[1],
-                        event.values[2]+0.44f); //*1.044f
+                        (event.values[0]*mCalibVetor_scale[0])-mCalibVetor_bias[0],
+                        (event.values[1]*mCalibVetor_scale[1])-mCalibVetor_bias[1],
+                        (event.values[2]*mCalibVetor_scale[2])-mCalibVetor_bias[2]); //*1.044f
                 break;
                 
             case Sensor.TYPE_MAGNETIC_FIELD:
-                showEventData("Abient Magnetic Field",
+                showEventData("Campo magnético",
                         "uT",
                         event.values[0],
                         event.values[1],
                         event.values[2]);
                 break;
             case Sensor.TYPE_GYROSCOPE:
-                showEventData("Angular speed around axis",
+                showEventData("Velocidade angular em torno do eixo",
                         "radians/sec",
                         event.values[0],
                         event.values[1],
@@ -204,14 +220,14 @@ public class SensorInfo extends Activity implements SensorEventListener{
                         event.values[0]);
                 break;
             case Sensor.TYPE_GRAVITY:
-                showEventData("Gravity",
+                showEventData("Gravidade",
                         ACCELERATION_UNITS,
                         event.values[0],
                         event.values[1],
                         event.values[2]);
                 break;
             case Sensor.TYPE_LINEAR_ACCELERATION:
-                showEventData("Acceleration (not including gravity)",
+                showEventData("Aceleração (sem gravidade)",
                         ACCELERATION_UNITS,
                         event.values[0],
                         event.values[1],
@@ -219,7 +235,7 @@ public class SensorInfo extends Activity implements SensorEventListener{
                 break;
             case Sensor.TYPE_ROTATION_VECTOR:
                 
-                showEventData("Rotation Vector",
+                showEventData("Vetor rotação",
                         null,
                         event.values[0],
                         event.values[1],
@@ -336,5 +352,58 @@ public class SensorInfo extends Activity implements SensorEventListener{
 	        
 	        sManager.unregisterListener(this);
 	    }
+	 @Override
+	 public void onResume()
+	 {
+		 super.onResume();
+		 mCalibVetor_scale[0] = 1;
+		 mCalibVetor_scale[1] = 1;
+		 mCalibVetor_scale[2] = 1;
+		prefs = PreferenceManager.getDefaultSharedPreferences(this); //instancio as preferencias de modo static , sem new()
+		 mEfectuaCalibracao = prefs.getBoolean("efectuaCalibracao", false);
+		 if(mEfectuaCalibracao)
+			{
+
+			 mCalibVetor_scale[0] = prefs.getFloat("k_X", 1.0f);
+			 mCalibVetor_scale[1] = prefs.getFloat("k_Y", 1.0f);
+			 mCalibVetor_scale[2] = prefs.getFloat("k_Z", 1.0f);
+			 mCalibVetor_bias[0] = prefs.getFloat("b_X", 0.0f);
+			mCalibVetor_bias[1] = prefs.getFloat("b_Y", 0.0f);
+			mCalibVetor_bias[2] = prefs.getFloat("b_Z", 0.0f);
+			}
+	 }
+	// ------------------------------------------------------------------------
+		// Menu de opções
+		// Configuração - Configuraçao das preferencias
+		// Reset - Reset à velocidade
+		// About - Espaço para colocar Acerca
+		// ------------------------------------------------------------------------
+		@Override
+		public boolean onCreateOptionsMenu(Menu menu) {
+			MenuInflater inflater = getMenuInflater();
+			inflater.inflate(R.menu.smta_menu, menu);
+			return true;
+		}
+
+		@Override
+		public boolean onOptionsItemSelected(MenuItem item) {
+			if (item.getItemId() == R.id.config) {
+				Intent smtaPrefs = new Intent(this, SmtaPreferences.class);
+				startActivity(smtaPrefs);
+				return true;
+			} else if (item.getItemId() == R.id.reset) {
+				//ins.velocidade.zero();
+				return true;
+			} else if (item.getItemId() == R.id.calibrar) {
+				Intent smtaCalib = new Intent(this, CalibracaoActivity.class);
+				startActivity(smtaCalib);
+				return true;
+			} else if (item.getItemId() == R.id.about) {
+				return true;
+			} else {
+				return super.onOptionsItemSelected(item);
+			}
+
+		}
 
 }

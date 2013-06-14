@@ -38,6 +38,7 @@ public class InsActivity extends Activity implements OnInsChanged{
 	// Writer de dados
 	public SensorWriterSmta sensorWriter = new SensorWriterSmta();
 	// ---------------------------------------- FIM DEBUG DE INFORMAÇAO -----------------------------------
+	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		// Coloca em fullScreen e deixa ecrã sempre ligado
@@ -160,24 +161,20 @@ public class InsActivity extends Activity implements OnInsChanged{
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle item selection
-		switch (item.getItemId()) {
-		case R.id.config:
+		if (item.getItemId() == R.id.config) {
 			Intent smtaPrefs = new Intent(this, SmtaPreferences.class);
 			startActivity(smtaPrefs);
 			return true;
-		case R.id.reset:
+		} else if (item.getItemId() == R.id.reset) {
 			//ins.velocidade.zero();
 			return true;
 		/*case R.id.calibrar:
 			Intent smtaCalib = new Intent(this, CalibracaoActivity.class);
 			startActivity(smtaCalib);
 			return true;*/
-
-		case R.id.about:
-
+		} else if (item.getItemId() == R.id.about) {
 			return true;
-		default:
+		} else {
 			return super.onOptionsItemSelected(item);
 		}
 

@@ -11,7 +11,6 @@ import android.location.GpsSatellite;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 // O IntentService permite-me usar uma thread diferente da thread main.
 // Creates a default worker thread that executes all intents delivered to onStartCommand() separate from your application's main thread.
 // Leitura:
@@ -67,8 +66,8 @@ public class ServiceFusao extends IntentService implements InterfaceGps  {
 	@Override
 	public void onLocationChanged(Location location) {
 		
-		mBundleLocation.putDouble(this.LATITUDE, location.getLatitude());
-		mBundleLocation.putDouble(this.LONGITUDE, location.getLongitude());
+		mBundleLocation.putDouble(ServiceFusao.LATITUDE, location.getLatitude());
+		mBundleLocation.putDouble(ServiceFusao.LONGITUDE, location.getLongitude());
 		broadcast.setAction(InsGpsReceiver.ACTION_RESP);
 		broadcast.addCategory(Intent.CATEGORY_DEFAULT);
 		broadcast.putExtras(mBundleLocation);

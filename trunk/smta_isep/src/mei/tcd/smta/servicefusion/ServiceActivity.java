@@ -14,6 +14,7 @@ public class ServiceActivity extends Activity {
 	private TextView debugView;
 	private InsGpsReceiver receiver;
 	private WGS84 coordenadas;
+	@Override
 	public void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.debug);

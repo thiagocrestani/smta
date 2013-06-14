@@ -55,7 +55,7 @@
                 android:layout_weight="1"
                 android:enabled="false"
                 android:onClick="onRecClick"
-                android:text="StartRec"
+                android:text="Rec"
                 android:weightSum="1" />
 
             <Button
@@ -78,13 +78,12 @@
             android:layout_above="@id/buttonsView"
             android:weightSum="2" >
 
-            <com.google.android.maps.MapView
+            <fragment 
                 android:id="@+id/mapview1"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:apiKey="0CdgP_5eXIzO_L4g3yH0tsIu5RxccMpc5DwVfbg"
-                android:clickable="true" />
-            <!-- 0CdgP_5eXIzNXIiHQ2pFbjAYZgZMd6lYkONodHQ - Release Key -->
+               class="com.google.android.gms.maps.MapFragment" />
+            
 
         </LinearLayout>
         <!--
@@ -93,7 +92,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:textSize="14dp" />
+            android:textSize="14dp"/>
         -->
     </RelativeLayout>
 

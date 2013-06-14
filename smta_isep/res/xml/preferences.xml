@@ -18,19 +18,43 @@
             android:key="orientacao"
             android:summary="Escolha a forma (sensores) de orientação pretendida."
             android:title="Orientação" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="usaLHp"
+            android:summary="Activa ou desactiva o uso do filtro Low Pass Filter"
+            android:title="Usa filtro High Low Pass filter."
+            android:disableDependentsState="false" />
         <ListPreference
             android:defaultValue="highpass"
+            android:dependency="usaLHp"
             android:entries="@array/filtro"
             android:entryValues="@array/filtroValues"
             android:key="filtro"
             android:summary="Filtro para acelerometro."
-            android:title="Filtro acelerometro" />
+            android:title="Filtro High/Low Pass" />
 
         <EditTextPreference
             android:defaultValue="0.4"
             android:key="thresholdFiltro"
+             android:dependency="usaLHp"
             android:summary="Alpha para filtro"
-            android:title="Cut-Off Freq" />
+            android:inputType="numberDecimal"
+            android:title="Cut-Off Freq (High/Low Pass)" />
+       
+         <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="usaSma"
+            android:summary="Activa ou desactiva o uso do filtro Simple Moving Average"
+            android:title="Usa filtro Simple Moving Average."
+            android:disableDependentsState="false" />
+
+        <EditTextPreference
+            android:defaultValue="5"
+            android:key="thresholdSMA"
+            android:summary="Número de pontos para SMA"
+            android:title="Número de pontos média" 
+            android:inputType="number" 
+            android:dependency="usaSma"/>
 
         <CheckBoxPreference
             android:defaultValue="false"
@@ -44,18 +68,20 @@
             android:key="thresholdCalibracao"
             android:summary="Número de observações para calibração do acelerometro."
             android:title="Número de observações."
+            android:inputType="number" 
             android:dependency="efectuaCalibracao" />
         <EditTextPreference
             android:defaultValue="0.4"
             android:key="thresholdArranque"
             android:summary="Threshold para acelerometro (arranque)"
+            android:inputType="numberDecimal"
             android:title="Threshold" />
 
         <CheckBoxPreference
             android:defaultValue="false"
             android:key="controlaParagem"
             android:summary="Activa ou desactiva o controlo de desacelaração."
-            android:title="Controlo de desacelaração." />
+            android:title="Controlo de desacelaração." android:disableDependentsState="false"/>
 
         <EditTextPreference
             android:defaultValue="3"
@@ -79,8 +105,11 @@
             android:title="Log GPS (latitude, longitude, etc...)." />
     </PreferenceCategory>
     <PreferenceCategory
-        android:summary="GPS"
-        android:title="GPS configuração" >
+        android:summary="Enviar pacotes UDP"
+        android:title="Rede (UDP)" >
+        <CheckBoxPreference android:key="udpsend" android:title="Enviar dados por UDP" android:summary="A aplicação pode permitir o envio dos dados dos sensores através de pacotes UDP para, por exemplo, serem capturados e analisados em real time no MATLAB." android:defaultValue="false"/>
+        <EditTextPreference android:title="IP servidor" android:summary="IP do dispositivo de destino." android:inputType="text"  android:key="udpip"/>
+        <EditTextPreference android:title="Porta" android:summary="Porta do IP de destino" android:inputType="number"  android:key="udpporta"/>
     </PreferenceCategory>
 
 </PreferenceScreen>

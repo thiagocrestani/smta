@@ -1,9 +1,13 @@
 package mei.tcd.smta;
 
 import mei.tcd.smta.R;
+import mei.tcd.smta.ins.CalibracaoActivity;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -95,11 +99,47 @@ public class Smta_Start extends Activity {
     // Forço o finish da aplicação porque por vezes ela fica a correr em background
     @Override
     protected void onDestroy() {
+    	
         super.onDestroy();
+        
         finish();
+        android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(0);
         
         
        
     }
+	// ------------------------------------------------------------------------
+	// Menu de opções
+	// Configuração - Configuraçao das preferencias
+	// Reset - Reset à velocidade
+	// About - Espaço para colocar Acerca
+	// ------------------------------------------------------------------------
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.smta_menu, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (item.getItemId() == R.id.config) {
+			Intent smtaPrefs = new Intent(this, SmtaPreferences.class);
+			startActivity(smtaPrefs);
+			return true;
+		} else if (item.getItemId() == R.id.reset) {
+			//ins.velocidade.zero();
+			return true;
+		} else if (item.getItemId() == R.id.calibrar) {
+			Intent smtaCalib = new Intent(this, CalibracaoActivity.class);
+			startActivity(smtaCalib);
+			return true;
+		} else if (item.getItemId() == R.id.about) {
+			return true;
+		} else {
+			return super.onOptionsItemSelected(item);
+		}
+
+	}
 }

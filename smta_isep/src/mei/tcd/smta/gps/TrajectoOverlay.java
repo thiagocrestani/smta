@@ -1,5 +1,6 @@
 package mei.tcd.smta.gps;
 
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.maps.ItemizedOverlay;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,10 +21,10 @@ public class TrajectoOverlay extends ItemizedOverlay<OverlayItem> {
 	private Paint trajectoPaint;
 	private Paint tracoPaint;
 	private Paint fillPaint;
-	private MapView mapView;
+	private GoogleMap mapView;
 	private boolean inicio = true;
 
-	public TrajectoOverlay(Drawable defaultMarker, MapView mapView)
+	public TrajectoOverlay(Drawable defaultMarker, GoogleMap mapView2)
 	{
 		// Interessante objecto que permite ajustar o centro do drawable para marcar no inicio. Neste caso vai ser um ponto.
 		super(boundCenterBottom(defaultMarker));
@@ -44,7 +45,7 @@ public class TrajectoOverlay extends ItemizedOverlay<OverlayItem> {
 		fillPaint.setStyle(Style.FILL);
 		fillPaint.setAlpha(32);
 
-		this.mapView = mapView;
+		this.mapView = mapView2;
 	}
 
 	@Override
@@ -65,7 +66,7 @@ public class TrajectoOverlay extends ItemizedOverlay<OverlayItem> {
 				longitude));
 		populate();
 // Para chamar o onDraw
-		mapView.invalidate();
+		//mapView.invalidate();
 	}
 
 	@Override

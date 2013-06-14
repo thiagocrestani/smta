@@ -27,7 +27,6 @@ import android.graphics.drawable.Drawable;
 import android.location.GpsSatellite;
 import android.location.Location;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -93,7 +92,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 		// Drawable do oberlayItem.
 		Drawable inicioDrawable = getResources().getDrawable(R.drawable.dot_icon);
 		// Um overlay é uma lista de Items de  overlay . Parametros é o drawable (balão) e o mapa.
-		trajectoOverlay = new TrajectoOverlay(inicioDrawable, mapView);
+		//trajectoOverlay = new TrajectoOverlay(inicioDrawable, mapView);
 		// Acede à lista de overlays, neste caso adiciona a nossa trajectoOverlay.
 		mapView.getOverlays().add(trajectoOverlay);
 		// Instancia do meu listener gps
@@ -119,8 +118,7 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 			
 			startBtn.setEnabled(false);
 			stopBtn.setEnabled(true);
-			
-			gpsListener.startGps();
+						gpsListener.startGps();
 
 			dialog.setCancelable(false);
 			dialog.setMessage("A inicializar...a tentar obter localização do GPS!");
@@ -311,24 +309,20 @@ public class InsGpsMapsActivity extends MapActivity implements OnInsChanged,Inte
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle item selection
-		switch (item.getItemId()) {
-		case R.id.config:
+		if (item.getItemId() == R.id.config) {
 			Intent smtaPrefs = new Intent(this, SmtaPreferences.class);
 			startActivity(smtaPrefs);
 			return true;
-		case R.id.reset:
+		} else if (item.getItemId() == R.id.reset) {
 			//ins.velocidade.zero();
 			return true;
 	/*	case R.id.calibrar:
 			Intent smtaCalib = new Intent(this, CalibracaoActivity.class);
 			startActivity(smtaCalib);
 			return true;*/
-
-		case R.id.about:
-
+		} else if (item.getItemId() == R.id.about) {
 			return true;
-		default:
+		} else {
 			return super.onOptionsItemSelected(item);
 		}
 

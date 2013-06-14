@@ -63,7 +63,7 @@ public class Gps_Activity extends MapActivity implements InterfaceGps{
 		// Drawable do oberlayItem.
 		Drawable inicioDrawable = getResources().getDrawable(R.drawable.dot_icon);
 		// Um overlay é uma lista de Items de  overlay . Parametros é o drawable (balão) e o mapa.
-		trajectoOverlay = new TrajectoOverlay(inicioDrawable, mapView);
+		//trajectoOverlay = new TrajectoOverlay(inicioDrawable, mapView);
 		// Acede à lista de overlays, neste caso adiciona a nossa trajectoOverlay.
 		mapView.getOverlays().add(trajectoOverlay);
 		// Instancia do meu listener gps

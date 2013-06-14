@@ -10,7 +10,7 @@ public class Ops {
 	 */
 	public boolean hasMagnitude(float[] dados)
 	{
-		if( (float) (this.getMagnitude(dados))>0){
+		if( (this.getMagnitude(dados))>0){
 			return true;
 		}
 		else return false;

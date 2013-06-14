@@ -8,9 +8,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.preference.PreferenceManager;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
 public class CalibracaoAcc implements SensorEventListener {
 	//private static final int OBSERVACOES = 100;

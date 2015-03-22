@@ -1,0 +1,1 @@
+Este sistema apoiará o GPS na localização imediata do veículo em caso de outage do gps durante curtos períodos de tempo.
